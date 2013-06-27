@@ -1,5 +1,7 @@
 module DynamoAutoscale
   class Actioner
+    include DynamoAutoscale::Logger
+
     def initialize
       @downscales         = Hash.new { |h, k| h[k] = { reads: 0, writes: 0 } }
       @upscales           = Hash.new { |h, k| h[k] = { reads: 0, writes: 0 } }
@@ -63,7 +65,7 @@ module DynamoAutoscale
 
       if prev == value
         logger.debug "Attempted to scale by 1. Ignoring..."
-        return
+        return false
       end
 
       if prev > value and @downscales[table][key] >= 4
@@ -73,7 +75,7 @@ module DynamoAutoscale
             " Hit upper limit of downward scales per day."
         end
 
-        return
+        return false
       end
 
       if value > prev * 2
@@ -96,6 +98,10 @@ module DynamoAutoscale
           end
 
           provisioned_reads(table) << [time, value]
+
+          return true
+        else
+          return false
         end
       when :writes
         if scale(key, table, value)
@@ -106,6 +112,10 @@ module DynamoAutoscale
           end
 
           provisioned_writes(table) << [time, value]
+
+          return true
+        else
+          return false
         end
       end
     end

@@ -23,7 +23,7 @@ DynamoAutoscale.with_config 'logger' do |config|
     DynamoAutoscale::Logger.logger.level = ::Logger.const_get(config[:level])
   end
 
-  if ENV['SILENT']
+  if ENV['SILENT'] or DynamoAutoscale.env == "test"
     DynamoAutoscale::Logger.logger.level = ::Logger::FATAL
   end
 end
