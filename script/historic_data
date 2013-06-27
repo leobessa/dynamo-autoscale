@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+
+require_relative '../config/environment/common'
+require 'pp'
+require 'fileutils'
+
+include DynamoAutoscale
+
+tables    = AWS::DynamoDB.new.tables.to_a.map(&:name).reject { |s| s =~ /dev/ }
+today     = Date.today - 5.day
+yesterday = today - 1.day
+dir       = File.join(DynamoAutoscale.data_dir, yesterday.to_s)
+
+FileUtils.mkdir(dir) unless Dir.exists?(dir)
+
+logger.info "Date range: #{yesterday} to #{today}"
+
+tables.each do |table|
+  logger.info "Collecting data for #{table}..."
+  File.open(File.join(dir, "#{table}.json"), 'w') do |file|
+    file.write(JSON.pretty_generate(Metrics.all_metrics(table, {
+      period:     5.minutes,
+      start_time: yesterday,
+      end_time:   today,
+    })))
+  end
+end

@@ -1,0 +1,11 @@
+test:
+  :level: ERROR
+  :sync:  false
+
+development:
+  :level: INFO
+  :sync:  true
+
+production:
+  :level: INFO
+  :sync:  true

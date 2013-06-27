@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+
+# The simulator script reads from the data/ directory for historic data gathered
+# from CloudWatch with the script/historic_data script. Then it will step
+# through the data chronologically, dropping you into a REPL with each new
+# timeslice.
+#
+# Useful for checking that code works without having to make calls to the
+# CloudWatch API.
+
+require_relative '../config/environment/common'
+require 'irb'
+require 'pp'
+include DynamoAutoscale
+
+ruleset = ARGV.shift
+tables  = ARGV
+
+if ruleset.nil? or tables.empty?
+  STDERR.puts "Usage: script/simulator ruleset table_name [another_table_name ... ]"
+  exit 1
+end
+
+filters                    = LocalActioner.faux_provisioning_filters
+DynamoAutoscale.rules      = RuleSet.new(ruleset)
+DynamoAutoscale.dispatcher = Dispatcher.new
+DynamoAutoscale.poller     = LocalDataPoll.new(tables: tables, filters: filters)
+DynamoAutoscale.actioner   = LocalActioner.new
+
+DynamoAutoscale.poller.run do |table, time, datum|
+  Timecop.travel(time)
+
+  puts "Event at #{time}"
+  puts "#{datum.pretty_inspect}"
+  puts
+  puts "Press ctrl + d or type 'exit' to step forward in time."
+  puts "Type 'exit!' to exit entirely."
+
+  Ripl.start :binding => binding
+end

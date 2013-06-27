@@ -1,0 +1,54 @@
+#!/usr/bin/env ruby
+
+# This script is a sort-of REPL for monitoring production data. It will
+# periodically poll for production data and set off any alarms you define below.
+# Useful for testing autoscaling policies.
+#
+# At any point of the running process, pressing ctrl + c will pause execution
+# and drop you into a REPL where you can inspect the state of the program.
+# Exiting the REPL will resume execution.
+#
+# To exit the program entirely, drop into the REPL and run "exit!".
+
+require_relative '../config/environment/common'
+require 'pp'
+include DynamoAutoscale
+
+ruleset = ARGV.shift
+tables  = ARGV
+
+if tables.empty? or ruleset.nil?
+  STDERR.puts "Usage: script/monitor ruleset table_name [another_table_name ... ]"
+  exit 1
+end
+
+# These filters use the arrays inside the local actioner to fake the provisioned
+# reads and writes when the local data enters the system. It makes it look like
+# we're actually modifying the provisioned numbers.
+filters = [
+  Proc.new do |time, datum|
+    if writes = DynamoAutoscale.actioner.provisioned_writes(table).last
+      datum[:provisioned_writes] = writes.last
+    end
+
+    if reads = DynamoAutoscale.actioner.provisioned_reads(table).last
+      datum[:provisioned_reads] = reads.last
+    end
+  end,
+]
+
+DynamoAutoscale.rules      = RuleSet.new(ruleset)
+DynamoAutoscale.dispatcher = Dispatcher.new
+DynamoAutoscale.poller     = CWPoll.new(tables: tables)
+DynamoAutoscale.actioner   = LocalActioner.new
+
+begin
+  DynamoAutoscale.poller.run
+rescue SignalException, Interrupt
+  Ripl.start :binding => binding
+  retry
+rescue => e
+  # If we error out, print the error and drop into a repl.
+  logger.error "Exception occurred: #{e.class}:#{e.message}"
+  Ripl.start :binding => binding
+end

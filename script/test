@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+
+require_relative '../config/environment/common'
+require 'pp'
+include DynamoAutoscale
+extend  DynamoAutoscale
+
+graph   = !!(ARGV.delete("--graph") or ARGV.delete("-g"))
+ruleset = ARGV.shift
+tables  = ARGV
+
+if tables.empty? or ruleset.nil?
+  STDERR.puts "Usage: script/test ruleset table_name [another_table_name ... ]"
+  exit 1
+end
+
+filters                    = LocalActioner.faux_provisioning_filters
+DynamoAutoscale.rules      = RuleSet.new(ruleset)
+DynamoAutoscale.dispatcher = Dispatcher.new
+DynamoAutoscale.poller     = LocalDataPoll.new(tables: tables, filters: filters)
+DynamoAutoscale.actioner   = LocalActioner.new
+
+# Uncomment this and the below RubyProf lines if you want profiling information.
+# RubyProf.start
+
+begin
+  DynamoAutoscale.poller.run do |table_name, time|
+    Timecop.travel(time)
+  end
+rescue Interrupt
+  Ripl.start binding: binding
+end
+
+# Uncomment these and the above RubyProf line if you want profiling information.
+# printer = RubyProf::FlatPrinter.new(RubyProf.stop)
+# printer.print(STDOUT, min_percent: 2)
+
+# Uncomment this if you want to drop into a REPL at the end of the test.
+# Ripl.start binding: binding
+
+tables.each do |table_name|
+  table = DynamoAutoscale.tables[table_name]
+
+  table.report!
+  table.graph! if graph
+end

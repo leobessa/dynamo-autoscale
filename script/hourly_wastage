@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+
+# This script calculate an approximate "wastage cost" for every table (wastage
+# cost is defined as provisioned throughout - consumed throughput, so throughput
+# that was paid for but not used).
+#
+# Results:
+#
+#   18th June 2013: $2.148 per hour.
+
+require_relative '../config/environment/common'
+include DynamoAutoscale
+
+tables      = AWS::DynamoDB.new.tables.to_a.map(&:name)
+pad         = tables.map(&:length).max
+total_waste = 0
+opts        = { period: 1.hour, start_time: 1.hour.ago, end_time: Time.now }
+
+tables.each do |table|
+  pr = Metrics.provisioned_reads(table, opts).map do |datum|
+    datum[:average]
+  end.inject(:+) || 0.0
+
+  pw = Metrics.provisioned_writes(table, opts).map do |datum|
+    datum[:average]
+  end.inject(:+) || 0.0
+
+  cr = Metrics.consumed_reads(table, opts).map do |datum|
+    datum[:average]
+  end.inject(:+) || 0.0
+
+  cw = Metrics.consumed_writes(table, opts).map do |datum|
+    datum[:average]
+  end.inject(:+) || 0.0
+
+  waste_cost   = UnitCost.read(pr - cr) + UnitCost.write(pw - cw)
+  total_waste += waste_cost
+
+  puts "#{table.rjust(pad)}: reads(#{cr.round(4)} / #{pr.round(4)}) " +
+       "writes(#{cw.round(4)} / #{pw.round(4)}), ~$#{waste_cost.round(4)} " +
+       "wasted per hour"
+end
+
+puts "Total waste cost: ~$#{total_waste.round(4)} per hour"
