@@ -15,6 +15,22 @@ Here are the rules of the game:
   - Small spikes over your threshold are tolerated but the exact amount of time
   	they are tolerated for varies.
 
+# Configuration
+
+This library requires AWS keys that have access to both CloudWatch and DynamoDB,
+for retriving data and sending scaling requests.
+
+The project will look for a YAML file in the following locations on start up:
+
+  - ./aws.yml
+  - ENV['AWS_CONFIG']
+  - [project_root]/config/aws.yml
+
+If it doesn't find an AWS YAML config in any of those locations, the process
+prints an error and exits.
+
+A sample config can be found in the project root directory.
+
 # Usage
 
 TODO: Make the project usable. Roffle.
