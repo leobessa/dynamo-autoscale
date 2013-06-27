@@ -17,9 +17,14 @@ Here are the rules of the game:
 
 # Usage
 
+TODO: Make the project usable. Roffle.
 
+# Developers
 
-# Technical details
+Everything below this part of the README is intended for people that want to
+work on the dynamo-autoscale codebase.
+
+## Technical details
 
 The code has a set number of moving parts that are globally available and must
 implement certain interfaces (for exact details, you would need to study the
@@ -51,3 +56,44 @@ that needed them.
 They're also completely swappable. As long as they implement the right methods
 you can get your data from anywhere, dispatch your data to anywhere and send
 your actions to whatever you want. The defaults all work on local data.
+
+## Testing rules locally
+
+If you want to test rules on your local machine without having to query
+CloudWatch or hit DynamoDB, there are tools that facilitate that nicely.
+
+The first thing you would need to do is gather some historic data. There's a
+script called `script/historic_data` that you can run to gather data on all of
+your tables and store them into the `data/` directory in a format that all of
+the other scripts are familiar with.
+
+Next there are a couple of things you can do.
+
+### Running a test
+
+You can run a big batch of data all in one go with the `script/test` script.
+This script can be invoked like this:
+
+    $ script/test rulesets/default.rb table_name
+
+Substituting `table_name` with the name of a table that exists in your DynamoDB.
+This will run through all of the data for that table in time order, logging
+along the way and triggering rules from the rule set if any were defined.
+
+At the end, it shows you a report on the amount of wasted, used and lost units.
+
+#### Graphs
+
+If you felt so inclined, you could add the `--graph` flag to the above command
+and the script will generate a graph for you at the end. This will shell out to
+an R process to generate the graph, so you will need to ensure that you have R
+installed on your system with the `ggplot2` and `reshape` packages installed.
+
+### Simulating data coming in
+
+There's a script called `script/simulator` that allows you to step through data
+as it arrives. It takes the exact same arguments as the `script/test` script but
+instead of running all the way through the data and generating a report,
+`script/simulate` will pause after each round of new data and drop you into a
+REPL. This is very handy for debugging tricky situations with your rules or the
+codebase.
