@@ -9,8 +9,7 @@ module DynamoAutoscale
       @downscales       = 0
       @upscales         = 0
       @provisioned      = { reads: RBTree.new, writes: RBTree.new }
-      @pending_write    = nil
-      @pending_read     = nil
+      @pending          = { reads: nil, writes: nil }
       @last_action      = nil
       @last_scale_check = Time.now.utc
       @downscale_warn   = false
@@ -65,7 +64,7 @@ module DynamoAutoscale
       metric = normalize_metric(metric)
 
       if from == to
-        logger.debug "Attempted to scale by 1. Ignoring..."
+        logger.debug "Attempted to scale to same value. Ignoring..."
         return false
       end
 
@@ -87,10 +86,14 @@ module DynamoAutoscale
       logger.info "[#{metric.to_s.ljust(6)}][scaling #{"up".blue}] " +
         "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
 
-      @provisioned[metric][Time.now.utc] = to
 
       # Because upscales are not limited, we don't need to queue this operation.
-      scale(metric, to)
+      if result = scale(metric, to)
+        @provisioned[metric][Time.now.utc] = to
+        @upscales += 1
+      end
+
+      return result
     end
 
     def downscale metric, from, to
@@ -104,8 +107,14 @@ module DynamoAutoscale
         return false
       end
 
-      logger.info "[#{metric.to_s.ljust(6)}][scaling #{"up".blue}] " +
-        "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
+      if @pending[metric]
+        previous_pending = @pending[metric].last
+        logger.info "[#{metric.to_s.ljust(6)}][scaling #{"down".blue}] " +
+          "#{previous_pending} -> #{to.round(2)} (overwritten pending)"
+      else
+        logger.info "[#{metric.to_s.ljust(6)}][scaling #{"down".blue}] " +
+          "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
+      end
 
       queue_operation! metric, to
 
@@ -127,50 +136,50 @@ module DynamoAutoscale
 
       case metric
       when :writes
-        if @pending_write
+        if @pending[:writes]
           logger.debug "Overwriting existing pending write with [" +
             "#{metric.inspect}, #{table.name}, #{value}]"
         end
 
-        @pending_write = [time, value]
+        @pending[:writes] = [time, value]
       when :reads
-        if @pending_read
+        if @pending[:reads]
           logger.debug "Overwriting existing pending read with [" +
             "#{metric.inspect}, #{table.name}, #{value}]"
         end
 
-        @pending_read = [time, value]
+        @pending[:reads] = [time, value]
       end
     end
 
     def flush_operations!
       result = nil
 
-      if @pending_write and @pending_read
-        wtime, wvalue = @pending_write
-        rtime, rvalue = @pending_read
+      if @pending[:writes] and @pending[:reads]
+        wtime, wvalue = @pending[:writes]
+        rtime, rvalue = @pending[:reads]
 
         if result = scale_both(rvalue, wvalue)
           @provisioned[:writes][wtime] = wvalue
           @provisioned[:reads][rtime] = rvalue
 
-          @pending_write = nil
-          @pending_read = nil
+          @pending[:writes] = nil
+          @pending[:reads] = nil
         end
-      elsif @pending_write
-        time, value = @pending_write
+      elsif @pending[:writes]
+        time, value = @pending[:writes]
 
         if result = scale(:writes, value)
           @provisioned[:writes][time] = value
 
-          @pending_write = nil
+          @pending[:writes] = nil
         end
-      elsif @pending_read
-        time, value = @pending_read
+      elsif @pending[:reads]
+        time, value = @pending[:reads]
 
         if result = scale(:reads, value)
           @provisioned[:reads][time] = value
-          @pending_read = nil
+          @pending[:reads] = nil
         end
       end
 
@@ -178,7 +187,7 @@ module DynamoAutoscale
     end
 
     def should_flush?
-      return true if (@pending_read and @pending_write)
+      return true if (@pending[:reads] and @pending[:writes])
       return true if (@opts[:flush_after] and @last_action and
                      (Time.now.utc > @last_action + @opts[:flush_after]))
       return false
