@@ -3,8 +3,8 @@ module DynamoAutoscale
     include DynamoAutoscale::Logger
 
     def initialize
-      @downscales         = Hash.new { |h, k| h[k] = { reads: 0, writes: 0 } }
-      @upscales           = Hash.new { |h, k| h[k] = { reads: 0, writes: 0 } }
+      @downscales         = Hash.new(0)
+      @upscales           = Hash.new(0)
       @provisioned_writes = Hash.new { |h, k| h[k] = [] }
       @provisioned_reads  = Hash.new { |h, k| h[k] = [] }
 
@@ -27,25 +27,27 @@ module DynamoAutoscale
         logger.info "[scales] New day! Reset scaling counts back to 0."
         logger.debug "[scales] now: #{now}, comp: #{check}"
 
-        if @downscales[table][:reads] < 4 or @downscales[table][:writes] < 4
-          logger.warn "[scales] Unused downscales: #{@downscales[table]}"
+        if @downscales[table] < 4
+          logger.warn "[scales] Unused downscales. Used: #{@downscales[table]}"
         end
 
-        @upscales[table] = { reads: 0, writes: 0 }
-        @downscales[table] = { reads: 0, writes: 0 }
-        @downscale_warn = false
+        @upscales[table]   = 0
+        @downscales[table] = 0
+        @downscale_warn    = false
       end
 
       @last_scale_check = now
     end
 
-    def upscales table
+    def upscales table, new_val = nil
       check_day_reset! table
+      @upscales[table] = new_val if new_val
       @upscales[table]
     end
 
-    def downscales table
+    def downscales table, new_val = nil
       check_day_reset! table
+      @downscales[table] = new_val if new_val
       @downscales[table]
     end
 
@@ -68,7 +70,7 @@ module DynamoAutoscale
         return false
       end
 
-      if prev > value and @downscales[table][key] >= 4
+      if prev > value and @downscales[table] >= 4
         unless @downscale_warn
           @downscale_warn = true
           logger.warn "[#{key.to_s.ljust(6)}][scaling #{"failed".red}]" +
@@ -92,9 +94,9 @@ module DynamoAutoscale
       when :reads
         if scale(key, table, value)
           if prev > value
-            @downscales[table][key] += 1
+            @downscales[table] += 1
           else
-            @upscales[table][key] += 1
+            @upscales[table] += 1
           end
 
           provisioned_reads(table) << [time, value]
@@ -106,9 +108,9 @@ module DynamoAutoscale
       when :writes
         if scale(key, table, value)
           if prev > value
-            @downscales[table][key] += 1
+            @downscales[table] += 1
           else
-            @upscales[table][key] += 1
+            @upscales[table] += 1
           end
 
           provisioned_writes(table) << [time, value]

@@ -22,6 +22,14 @@ describe DynamoAutoscale::Actioner do
       actioner.set(:writes, table, 60).should be_true
       actioner.set(:writes, table, 60).should be_false
     end
+
+    it "is not per metric, it is per table" do
+      actioner.set(:reads, table, 90).should be_true
+      actioner.set(:writes, table, 80).should be_true
+      actioner.set(:reads, table, 70).should be_true
+      actioner.set(:writes, table, 60).should be_true
+      actioner.set(:writes, table, 60).should be_false
+    end
   end
 
   describe "scale resets" do
