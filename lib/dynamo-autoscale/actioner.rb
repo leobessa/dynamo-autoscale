@@ -10,7 +10,7 @@ module DynamoAutoscale
       @upscales         = 0
       @provisioned      = { reads: RBTree.new, writes: RBTree.new }
       @pending          = { reads: nil, writes: nil }
-      @last_action      = nil
+      @last_action      = Time.now.utc
       @last_scale_check = Time.now.utc
       @downscale_warn   = false
       @opts             = opts
@@ -117,18 +117,6 @@ module DynamoAutoscale
       end
 
       queue_operation! metric, to
-
-      if @opts[:group_downscales].nil? or should_flush?
-        if flush_operations!
-          @downscales += 1
-          @last_action = Time.now.utc
-          return true
-        else
-          return false
-        end
-      else
-        return false
-      end
     end
 
     def queue_operation! metric, value
@@ -149,6 +137,22 @@ module DynamoAutoscale
         end
 
         @pending[:reads] = [time, value]
+      end
+
+      try_flush!
+    end
+
+    def try_flush!
+      if !@opts[:group_downscales] or should_flush?
+        if flush_operations!
+          @downscales += 1
+          @last_action = Time.now.utc
+          return true
+        else
+          return false
+        end
+      else
+        return false
       end
     end
 
@@ -183,13 +187,23 @@ module DynamoAutoscale
         end
       end
 
+      logger.info "[flush] All pending downscales have been flushed."
       return result
     end
 
     def should_flush?
-      return true if (@pending[:reads] and @pending[:writes])
-      return true if (@opts[:flush_after] and @last_action and
-                     (Time.now.utc > @last_action + @opts[:flush_after]))
+      if @pending[:reads] and @pending[:writes]
+        logger.info "[flush] Both a read and a write are pending. Should flush."
+        return true
+      end
+
+      if (@opts[:flush_after] and @last_action and
+        (Time.now.utc > @last_action + @opts[:flush_after]))
+
+        logger.info "[flush] Flush timeout of #{@opts[:flush_after]} reached."
+        return true
+      end
+
       return false
     end
 

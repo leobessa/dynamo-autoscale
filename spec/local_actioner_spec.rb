@@ -49,6 +49,8 @@ describe DynamoAutoscale::Actioner do
       actioner.set(:writes, 50)
 
       actioner.provisioned_writes.length.should == 4
+      actioner.downscales.should == 4
+      actioner.upscales.should == 0
       time, value = actioner.provisioned_for(:writes).last
       value.should == 60
 
@@ -61,6 +63,8 @@ describe DynamoAutoscale::Actioner do
       actioner.set(:writes, 10)
 
       actioner.provisioned_writes.length.should == 8
+      actioner.downscales.should == 4
+      actioner.upscales.should == 0
       time, value = actioner.provisioned_for(:writes).last
       value.should == 20
     end
@@ -71,10 +75,14 @@ describe DynamoAutoscale::Actioner do
       actioner.set(:writes, 70).should be_true
       actioner.set(:writes, 60).should be_true
       actioner.set(:writes, 60).should be_false
+      actioner.downscales.should == 4
+      actioner.upscales.should == 0
 
       Timecop.travel(1.day.from_now.utc.midnight - 1.second)
 
       actioner.set(:writes, 50).should be_false
+      actioner.downscales.should == 4
+      actioner.upscales.should == 0
     end
   end
 
@@ -142,6 +150,45 @@ describe DynamoAutoscale::Actioner do
 
         time, value = actioner.provisioned_for(:writes).last
         value.should == 10
+      end
+    end
+
+    describe "flushing after a period of time" do
+      let(:actioner) do
+        DynamoAutoscale::LocalActioner.new(table, {
+          group_downscales: true,
+          flush_after: 5.minutes,
+        })
+      end
+
+      describe "happy path" do
+        before do
+          actioner.set(:reads, 10)
+          actioner.set(:reads, 5)
+
+          Timecop.travel(10.minutes.from_now)
+          actioner.try_flush!
+        end
+
+        it "should flush" do
+          actioner.provisioned_reads.length.should == 1
+          time, value = actioner.provisioned_reads.last
+          value.should == 5
+        end
+      end
+
+      describe "unhappy path" do
+        before do
+          actioner.set(:reads, 10)
+          actioner.set(:reads, 5)
+          actioner.try_flush!
+        end
+
+        it "should not flush" do
+          actioner.provisioned_reads.length.should == 0
+          time, value = actioner.provisioned_reads.last
+          value.should be_nil
+        end
       end
     end
   end
