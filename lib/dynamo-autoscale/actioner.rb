@@ -2,123 +2,196 @@ module DynamoAutoscale
   class Actioner
     include DynamoAutoscale::Logger
 
-    def initialize
-      @downscales         = Hash.new(0)
-      @upscales           = Hash.new(0)
-      @provisioned_writes = Hash.new { |h, k| h[k] = [] }
-      @provisioned_reads  = Hash.new { |h, k| h[k] = [] }
+    attr_accessor :table, :upscales, :downscales
 
-      @last_scale_check   = Time.now.utc
-      @downscale_warn     = false
+    def initialize table, opts = {}
+      @table            = table
+      @downscales       = 0
+      @upscales         = 0
+      @provisioned      = { reads: RBTree.new, writes: RBTree.new }
+      @pending_write    = nil
+      @pending_read     = nil
+      @last_action      = nil
+      @last_scale_check = Time.now.utc
+      @downscale_warn   = false
+      @opts             = opts
     end
 
-    def provisioned_reads table
-      @provisioned_reads[table]
+    def provisioned_for metric
+      @provisioned[normalize_metric(metric)]
     end
 
-    def provisioned_writes table
-      @provisioned_writes[table]
+    def provisioned_writes
+      @provisioned[:writes]
     end
 
-    def check_day_reset! table
+    def provisioned_reads
+      @provisioned[:reads]
+    end
+
+    def check_day_reset!
       now = Time.now.utc
 
       if now >= (check = (@last_scale_check + 1.day).midnight)
         logger.info "[scales] New day! Reset scaling counts back to 0."
         logger.debug "[scales] now: #{now}, comp: #{check}"
 
-        if @downscales[table] < 4
-          logger.warn "[scales] Unused downscales. Used: #{@downscales[table]}"
+        if @downscales < 4
+          logger.warn "[scales] Unused downscales. Used: #{@downscales}"
         end
 
-        @upscales[table]   = 0
-        @downscales[table] = 0
+        @upscales   = 0
+        @downscales = 0
         @downscale_warn    = false
       end
 
       @last_scale_check = now
     end
 
-    def upscales table, new_val = nil
-      check_day_reset! table
-      @upscales[table] = new_val if new_val
-      @upscales[table]
+    def upscales
+      check_day_reset!
+      @upscales
     end
 
-    def downscales table, new_val = nil
-      check_day_reset! table
-      @downscales[table] = new_val if new_val
-      @downscales[table]
+    def downscales new_val = nil
+      check_day_reset!
+      @downscales
     end
 
-    def set metric, table, value
-      check_day_reset! table
+    def set metric, to
+      check_day_reset!
 
-      key = case metric
-      when :reads, :provisioned_reads, :consumed_reads
-        :reads
-      when :writes, :provisioned_writes, :consumed_writes
-        :writes
-      end
+      from   = table.last_provisioned_for(metric)
+      metric = normalize_metric(metric)
 
-      time      = table.latest_data_time
-      prev      = table.last_provisioned_for(metric)
-      direction = prev > value ? "down".blue : "up  ".blue
-
-      if prev == value
+      if from == to
         logger.debug "Attempted to scale by 1. Ignoring..."
         return false
       end
 
-      if prev > value and @downscales[table] >= 4
+      if from and from > to
+        downscale metric, from, to
+      else
+        upscale metric, from, to
+      end
+    end
+
+    def upscale metric, from, to
+      if from and to > (from * 2)
+        to = from * 2
+
+        logger.warn "[#{metric.to_s.ljust(6)}] Attempted to scale up " +
+          "more than allowed. Capped scale to #{to}."
+      end
+
+      logger.info "[#{metric.to_s.ljust(6)}][scaling #{"up".blue}] " +
+        "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
+
+      @provisioned[metric][Time.now.utc] = to
+
+      # Because upscales are not limited, we don't need to queue this operation.
+      scale(metric, to)
+    end
+
+    def downscale metric, from, to
+      if @downscales >= 4
         unless @downscale_warn
           @downscale_warn = true
-          logger.warn "[#{key.to_s.ljust(6)}][scaling #{"failed".red}]" +
+          logger.warn "[#{metric.to_s.ljust(6)}][scaling #{"failed".red}]" +
             " Hit upper limit of downward scales per day."
         end
 
         return false
       end
 
-      if value > prev * 2
-        value = prev * 2
+      logger.info "[#{metric.to_s.ljust(6)}][scaling #{"up".blue}] " +
+        "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
 
-        logger.warn "[#{key.to_s.ljust(6)}] Attempted to scale up " +
-          "more than allowed. Capped scale to #{value}."
+      queue_operation! metric, to
+
+      if @opts[:group_downscales].nil? or should_flush?
+        if flush_operations!
+          @downscales += 1
+          @last_action = Time.now.utc
+          return true
+        else
+          return false
+        end
+      else
+        return false
+      end
+    end
+
+    def queue_operation! metric, value
+      time = Time.now.utc
+
+      case metric
+      when :writes
+        if @pending_write
+          logger.debug "Overwriting existing pending write with [" +
+            "#{metric.inspect}, #{table.name}, #{value}]"
+        end
+
+        @pending_write = [time, value]
+      when :reads
+        if @pending_read
+          logger.debug "Overwriting existing pending read with [" +
+            "#{metric.inspect}, #{table.name}, #{value}]"
+        end
+
+        @pending_read = [time, value]
+      end
+    end
+
+    def flush_operations!
+      result = nil
+
+      if @pending_write and @pending_read
+        wtime, wvalue = @pending_write
+        rtime, rvalue = @pending_read
+
+        if result = scale_both(rvalue, wvalue)
+          @provisioned[:writes][wtime] = wvalue
+          @provisioned[:reads][rtime] = rvalue
+
+          @pending_write = nil
+          @pending_read = nil
+        end
+      elsif @pending_write
+        time, value = @pending_write
+
+        if result = scale(:writes, value)
+          @provisioned[:writes][time] = value
+
+          @pending_write = nil
+        end
+      elsif @pending_read
+        time, value = @pending_read
+
+        if result = scale(:reads, value)
+          @provisioned[:reads][time] = value
+          @pending_read = nil
+        end
       end
 
-      logger.info "[#{key.to_s.ljust(6)}][scaling #{direction}] " +
-        "#{prev.round(2)} -> #{value.round(2)}"
+      return result
+    end
 
-      case key
-      when :reads
-        if scale(key, table, value)
-          if prev > value
-            @downscales[table] += 1
-          else
-            @upscales[table] += 1
-          end
+    def should_flush?
+      return true if (@pending_read and @pending_write)
+      return true if (@opts[:flush_after] and @last_action and
+                     (Time.now.utc > @last_action + @opts[:flush_after]))
+      return false
+    end
 
-          provisioned_reads(table) << [time, value]
+    private
 
-          return true
-        else
-          return false
-        end
-      when :writes
-        if scale(key, table, value)
-          if prev > value
-            @downscales[table] += 1
-          else
-            @upscales[table] += 1
-          end
-
-          provisioned_writes(table) << [time, value]
-
-          return true
-        else
-          return false
-        end
+    def normalize_metric metric
+      case metric
+      when :reads, :provisioned_reads, :consumed_reads
+        :reads
+      when :writes, :provisioned_writes, :consumed_writes
+        :writes
       end
     end
   end

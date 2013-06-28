@@ -21,11 +21,11 @@ if ruleset.nil? or tables.empty?
   exit 1
 end
 
-filters                    = LocalActioner.faux_provisioning_filters
-DynamoAutoscale.rules      = RuleSet.new(ruleset)
-DynamoAutoscale.dispatcher = Dispatcher.new
-DynamoAutoscale.poller     = LocalDataPoll.new(tables: tables, filters: filters)
-DynamoAutoscale.actioner   = LocalActioner.new
+filters                        = LocalActioner.faux_provisioning_filters
+DynamoAutoscale.rules          = RuleSet.new(ruleset)
+DynamoAutoscale.dispatcher     = Dispatcher.new
+DynamoAutoscale.poller         = LocalDataPoll.new(tables: tables, filters: filters)
+DynamoAutoscale.actioner_class = LocalActioner
 
 DynamoAutoscale.poller.run do |table, time, datum|
   Timecop.travel(time)

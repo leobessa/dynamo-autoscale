@@ -57,11 +57,11 @@ module DynamoAutoscale
 
               if scale = @opts[:scale]
                 new_val = table.send("last_#{scale[:on]}_for", @metric) * scale[:by]
-                DynamoAutoscale.actioner.set(@metric, table, new_val)
+                DynamoAutoscale.actioners[table].set(@metric, new_val)
               end
 
               if @block
-                @block.call(table, self, DynamoAutoscale.actioner)
+                @block.call(table, self, DynamoAutoscale.actioners[table])
               end
 
               return true

@@ -59,12 +59,24 @@ module DynamoAutoscale
     @@poller ||= LocalDataPoll.new
   end
 
-  def self.actioner= new_actioner
-    @@actioner = new_actioner
+  def self.actioner_class= klass
+    @@actioner_class = klass
   end
 
-  def self.actioner
-    @@actioner ||= LocalActioner.new
+  def self.actioner_class
+    @@actioner_class ||= LocalActioner
+  end
+
+  def self.actioner_opts= new_opts
+    @@actioner_opts = new_opts
+  end
+
+  def self.actioner_opts
+    @@actioner_opts ||= {}
+  end
+
+  def self.actioners
+    @@actioners ||= Hash.new { |h, k| h[k] = actioner_class.new(k, actioner_opts) }
   end
 
   def self.tables= new_tables

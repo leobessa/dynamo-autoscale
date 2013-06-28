@@ -37,10 +37,10 @@ filters = [
   end,
 ]
 
-DynamoAutoscale.rules      = RuleSet.new(ruleset)
-DynamoAutoscale.dispatcher = Dispatcher.new
-DynamoAutoscale.poller     = CWPoll.new(tables: tables)
-DynamoAutoscale.actioner   = LocalActioner.new
+DynamoAutoscale.rules          = RuleSet.new(ruleset)
+DynamoAutoscale.dispatcher     = Dispatcher.new
+DynamoAutoscale.poller         = CWPoll.new(tables: tables)
+DynamoAutoscale.actioner_class = LocalActioner
 
 begin
   DynamoAutoscale.poller.run

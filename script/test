@@ -14,11 +14,12 @@ if tables.empty? or ruleset.nil?
   exit 1
 end
 
-filters                    = LocalActioner.faux_provisioning_filters
-DynamoAutoscale.rules      = RuleSet.new(ruleset)
-DynamoAutoscale.dispatcher = Dispatcher.new
-DynamoAutoscale.poller     = LocalDataPoll.new(tables: tables, filters: filters)
-DynamoAutoscale.actioner   = LocalActioner.new
+filters                        = LocalActioner.faux_provisioning_filters
+DynamoAutoscale.rules          = RuleSet.new(ruleset)
+DynamoAutoscale.dispatcher     = Dispatcher.new
+DynamoAutoscale.poller         = LocalDataPoll.new(tables: tables, filters: filters)
+DynamoAutoscale.actioner_class = LocalActioner
+DynamoAutoscale.actioner_opts  = { group_downscales: true, flush_after: 1.hour }
 
 # Uncomment this and the below RubyProf lines if you want profiling information.
 # RubyProf.start

@@ -8,7 +8,8 @@ Here are the rules of the game:
   	you can only increase to up to double what the current threshold is.
 
   - You may scale up as many times per day as you like, however you may only
-  	scale down 4 times per day per metric (citation needed).
+  	scale down 4 times per day per table. (If you scale both reads and writes
+  	down in the same request, that only counts as 1 scale used)
 
   - Scaling is not an instantaneous event.
 
@@ -59,7 +60,7 @@ code):
   	file path as an argument, or a block, either of these needs to contain a set
   	of rules (examples can be found in the `rulesets/` directory).
 
-  - `DynamoAutoscale.actioner`: The actioner is what performs provision scaling.
+  - `DynamoAutoscale.actioners`: The actioners are what perform provision scaling.
   	Locally this is faked, in production it makes API calls to DynamoDB.
 
   - `DynamoAutoscale.tables`: This is a hash table of `TableTracker` objects,

@@ -295,8 +295,8 @@ module DynamoAutoscale
       puts "Wasted w/units: #{wasted_write_units.round(2)} (#{wasted_write_percent.round(2)}%)"
       puts " Total w/units: #{total_write_units.round(2)}"
       puts "  Lost w/units: #{lost_write_units.round(2)} (#{lost_write_percent.round(2)}%)"
-      puts "      Upscales: #{DynamoAutoscale.actioner.upscales(self)}"
-      puts "    Downscales: #{DynamoAutoscale.actioner.downscales(self)}"
+      puts "      Upscales: #{DynamoAutoscale.actioners[self].upscales}"
+      puts "    Downscales: #{DynamoAutoscale.actioners[self].downscales}"
       puts "       Fitness: #{fitness}"
     end
 
