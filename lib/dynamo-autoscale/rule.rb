@@ -64,6 +64,15 @@ module DynamoAutoscale
       if @opts[:scale] and @opts[:scale][:on].nil? and @opts[:scale][:by].nil?
         raise ArgumentError.new(":scale option expects :on and :by options.")
       end
+
+      if @opts[:scale] and ![:consumed, :provisioned].include?(@opts[:scale][:on])
+        raise ArgumentError.new(":scale { :on } needs to be either :consumed " +
+          "or :provisioned")
+      end
+
+      if @opts[:scale] and @opts[:scale][:by] <= 0
+        raise ArgumentError.new(":scale { :by } needs to be greater than 0")
+      end
     end
 
     def test table

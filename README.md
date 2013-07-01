@@ -111,13 +111,97 @@ range before evaluating the rest of the rule, you can specify a minimum or
 maximum number of points to evaluate. Currently, this only supports a numeric
 value. So you can ask for at least 20 points to be present like so:
 
-### The :greater_than and :less_than options
-
-
-
 ``` ruby
 reads for: 2.hours, less_than: "50%", min: 20, scale: { on: :consumed, by: 2 }
 ```
+
+### The :greater_than and :less_than options
+
+You must specify at least one of these options for the rule to actually validate
+without throwing an error. Having neither makes no sense.
+
+You can specify either an absolute value or a percentage specified as a string.
+The percentage will calculate the percentage consumed against the amount
+provisioned.
+
+Examples:
+
+``` ruby
+reads for: 2.hours, less_than: 10, scale: { on: :consumed, by: 2 }
+
+reads for: 2, less_than: "20%", scale: { on: :consumed, by: 2 }
+```
+
+### The :scale option
+
+The `:scale` option is a way of doing a simple change to the provisioned
+throughput without having to specify repetitive stuff in a block. `:scale`
+expects to be a hash and it expects to have two keys in the hash: `:on` and
+`:by`.
+
+`:on` specifies what part of the metric you want to scale on. It can either by
+`:provisioned` or `:consumed`. In most cases, `:consumed` makes a lot more sense
+than `:provisioned`.
+
+`:by` specifies the scale factor. If you want to double the provisioned capacity
+when a rule triggers, you would write something like this:
+
+``` ruby
+reads for: 2.hours, less_than: "30%", scale: { on: :provisioned, by: 0.5 }
+```
+
+And that would half the provisioned throughput for reads if the consumed is
+less than 30% of the provisioned for 2 hours.
+
+### Passing a block
+
+If you want to do something a little bit more complicated with your rules, you
+can pass a block to them. The block will get passed three things: the table the
+rule was triggered for, the rule object that triggered and the actioner for that
+table.
+
+An actioner is an abstraction of communication with Dynamo and it allows
+communication to be faked if you want to do a dry run. It exposes a very simple
+interface. Here's an example:
+
+``` ruby
+writes for: 2.hours, greater_than: 200 do |table, rule, actioner|
+  actioner.set(:writes, 300)
+end
+```
+
+This rule will set the provisioned write throughout to 300 if the consumed
+writes are greater than 200 for 2 hours. The actioner handles a tonne of things
+under the hood, such as making sure you don't scale up more than you're allowed
+to in a single call and making sure you don't try to change a table when it's in
+the updating state.
+
+It also handles the grouping of downscales, which we will talk about in a later
+section of the README.
+
+The `table` argument is a `TableTracker` object. For a run down of what
+information is available to you I advise checking out the source code in
+`lib/dynamo-autoscale/table_tracker.rb`.
+
+### The :count option
+
+The `:count` option allows you to specify that a rule must be triggered a set
+number of times in a row before its action is executed.
+
+Example:
+
+``` ruby
+writes for: 10.minutes, greater_than: "90%", count: 3, scale: { on: :consumed, by: 1.5 }
+```
+
+This says that is writes are greater than 90% for 10 minutes three checks in a
+row, scale by the amount consumed multiplied by 1.5. A new check will only
+happen when the table receives new data from cloud watch, which means that the
+10 minute windows could potentially overlap.
+
+## Downscale grouping
+
+TODO: THIS.
 
 # Developers
 

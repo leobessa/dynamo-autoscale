@@ -127,6 +127,38 @@ describe DynamoAutoscale::Rule do
           end.to raise_error ArgumentError
         end
       end
+
+      describe 'scale given but not hash' do
+        it 'should throw an error' do
+          expect do
+            DynamoAutoscale::Rule.new(:consumed_reads, last: 1, greater_than: 1, scale: 2)
+          end.to raise_error ArgumentError
+        end
+      end
+
+      describe 'scale given without :on or :by' do
+        it 'should throw an error' do
+          expect do
+            DynamoAutoscale::Rule.new(:consumed_reads, last: 1, greater_than: 1, scale: {})
+          end.to raise_error ArgumentError
+        end
+      end
+
+      describe 'scale given with invalid :on' do
+        it 'should throw an error' do
+          expect do
+            DynamoAutoscale::Rule.new(:consumed_reads, last: 1, greater_than: 1, scale: { on: :whoops, by: 2 })
+          end.to raise_error ArgumentError
+        end
+      end
+
+      describe 'scale given with invalid :by' do
+        it 'should throw an error' do
+          expect do
+            DynamoAutoscale::Rule.new(:consumed_reads, last: 1, greater_than: 1, scale: { on: :consumed, by: -0.3 })
+          end.to raise_error ArgumentError
+        end
+      end
     end
   end
 
