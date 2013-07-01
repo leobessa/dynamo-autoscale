@@ -31,6 +31,12 @@ describe DynamoAutoscale::Actioner do
       actioner.set(:writes, 60).should be_true
       actioner.set(:writes, 60).should be_false
     end
+
+    it "should not be allowed to fall below the minimum throughput" do
+      actioner.set(:reads, DynamoAutoscale::Actioner.minimum_throughput - 1)
+      time, val = actioner.provisioned_reads.last
+      val.should == DynamoAutoscale::Actioner.minimum_throughput
+    end
   end
 
   describe "scale resets" do
@@ -148,16 +154,16 @@ describe DynamoAutoscale::Actioner do
 
     describe "a write and a read" do
       before do
-        actioner.set(:reads, 10)
-        actioner.set(:writes, 10)
+        actioner.set(:reads, 30)
+        actioner.set(:writes, 30)
       end
 
       it "should be applied" do
         time, value = actioner.provisioned_for(:reads).last
-        value.should == 10
+        value.should == 30
 
         time, value = actioner.provisioned_for(:writes).last
-        value.should == 10
+        value.should == 30
       end
     end
 
@@ -171,8 +177,8 @@ describe DynamoAutoscale::Actioner do
 
       describe "happy path" do
         before do
+          actioner.set(:reads, 20)
           actioner.set(:reads, 10)
-          actioner.set(:reads, 5)
 
           Timecop.travel(10.minutes.from_now)
           actioner.try_flush!
@@ -181,14 +187,14 @@ describe DynamoAutoscale::Actioner do
         it "should flush" do
           actioner.provisioned_reads.length.should == 1
           time, value = actioner.provisioned_reads.last
-          value.should == 5
+          value.should == 10
         end
       end
 
       describe "unhappy path" do
         before do
+          actioner.set(:reads, 20)
           actioner.set(:reads, 10)
-          actioner.set(:reads, 5)
           actioner.try_flush!
         end
 

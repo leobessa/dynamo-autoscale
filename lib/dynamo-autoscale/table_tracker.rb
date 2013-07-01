@@ -34,15 +34,24 @@ module DynamoAutoscale
       # amounts. These two conditional blocks fill in those gaps.
       if datum[:provisioned_writes].nil?
         datum[:provisioned_writes] = last_provisioned_for :writes, at: time
+
+        if datum[:provisioned_writes]
+          logger.debug "Filled in gap in provisioned writes."
+        end
       end
       if datum[:provisioned_reads].nil?
         datum[:provisioned_reads] = last_provisioned_for :reads, at: time
+
+        if datum[:provisioned_reads]
+          logger.debug "Filled in gap in provisioned reads."
+        end
       end
 
       @data[time] = datum
 
       # The code below here just makes sure that we're trimming data points that
       # are outside of the time window.
+      logger.debug "Pruning data that may be outside of time window..."
       now = Time.now.utc
       to_delete = @data.each.take_while { |key, _| key < (now - TIME_WINDOW) }
       to_delete.each { |key, _| @data.delete(key) }
@@ -235,8 +244,8 @@ module DynamoAutoscale
     #   UnitCost.read(wasted_read_units) + UnitCost.write(wasted_write_units)
     # end
 
-    def to_csv! path = nil
-      path ||= File.join(DynamoAutoscale.root, "#{self.name}.csv")
+    def to_csv! opts = {}
+      path = opts[:path] or File.join(DynamoAutoscale.root, "#{self.name}.csv")
 
       CSV.open(path, 'w') do |csv|
         csv << [
@@ -263,10 +272,10 @@ module DynamoAutoscale
 
     def graph! opts = {}
       data_tmp = File.join(Dir.tmpdir, 'data.csv')
-      png_tmp  = opts[:path] || File.join(Dir.tmpdir, 'graph.png')
+      png_tmp  = opts[:path] or File.join(Dir.tmpdir, 'graph.png')
       r_script = File.join(DynamoAutoscale.root, 'rlib', 'dynamodb_graph.r')
 
-      to_csv!(data_tmp)
+      to_csv!(path: data_tmp)
 
       `r --no-save --args #{data_tmp} #{png_tmp} < #{r_script}`
 

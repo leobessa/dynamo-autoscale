@@ -2,6 +2,14 @@ module DynamoAutoscale
   class Actioner
     include DynamoAutoscale::Logger
 
+    def self.minimum_throughput
+      @minimum_throughput ||= 10
+    end
+
+    def self.minimum_throughput= new_minimum_throughput
+      @minimum_throughput = new_minimum_throughput
+    end
+
     attr_accessor :table, :upscales, :downscales
 
     def initialize table, opts = {}
@@ -63,9 +71,23 @@ module DynamoAutoscale
       from   = table.last_provisioned_for(metric)
       metric = normalize_metric(metric)
 
-      if from == to
+      if from and from == to
         logger.debug "Attempted to scale to same value. Ignoring..."
         return false
+      end
+
+      if from and to > (from * 2)
+        to = from * 2
+
+        logger.warn "[#{metric}] Attempted to scale up " +
+          "more than allowed. Capped scale to #{to}."
+      end
+
+      if from and to < Actioner.minimum_throughput
+        to = Actioner.minimum_throughput
+
+        logger.warn "[#{metric}] Attempted to scale down to " +
+          "less than minimum throughput. Capped scale to #{to}."
       end
 
       if from and from > to
@@ -76,14 +98,7 @@ module DynamoAutoscale
     end
 
     def upscale metric, from, to
-      if from and to > (from * 2)
-        to = from * 2
-
-        logger.warn "[#{metric.to_s.ljust(6)}] Attempted to scale up " +
-          "more than allowed. Capped scale to #{to}."
-      end
-
-      logger.info "[#{metric.to_s.ljust(6)}][scaling up] " +
+      logger.info "[#{metric}][scaling up] " +
         "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
 
 
@@ -109,10 +124,10 @@ module DynamoAutoscale
 
       if @pending[metric]
         previous_pending = @pending[metric].last
-        logger.info "[#{metric.to_s.ljust(6)}][scaling down] " +
+        logger.info "[#{metric}][scaling down] " +
           "#{previous_pending} -> #{to.round(2)} (overwritten pending)"
       else
-        logger.info "[#{metric.to_s.ljust(6)}][scaling down] " +
+        logger.info "[#{metric}][scaling down] " +
           "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
       end
 
@@ -120,30 +135,17 @@ module DynamoAutoscale
     end
 
     def queue_operation! metric, value
-      time = Time.now.utc
-
-      case metric
-      when :writes
-        if @pending[:writes]
-          logger.debug "Overwriting existing pending write with [" +
-            "#{metric.inspect}, #{table.name}, #{value}]"
-        end
-
-        @pending[:writes] = [time, value]
-      when :reads
-        if @pending[:reads]
-          logger.debug "Overwriting existing pending read with [" +
-            "#{metric.inspect}, #{table.name}, #{value}]"
-        end
-
-        @pending[:reads] = [time, value]
+      if @pending[metric]
+        logger.debug "[#{metric}] Overwriting pending op with #{value.round(2)}"
       end
+
+      @pending[metric] = [Time.now.utc, value]
 
       try_flush!
     end
 
     def try_flush!
-      if !@opts[:group_downscales] or should_flush?
+      if should_flush?
         if flush_operations!
           @downscales += 1
           @last_action = Time.now.utc
@@ -192,6 +194,11 @@ module DynamoAutoscale
     end
 
     def should_flush?
+      if @opts[:group_downscales].nil?
+        logger.info "[flush] Downscales are not being grouped. Should flush."
+        return true
+      end
+
       if @pending[:reads] and @pending[:writes]
         logger.info "[flush] Both a read and a write are pending. Should flush."
         return true
@@ -213,6 +220,10 @@ module DynamoAutoscale
         logger.info "[flush] Flush timeout of #{@opts[:flush_after]} reached."
         return true
       end
+
+      logger.info "[flush] Flushing conditions not met. Pending operations: " +
+        "#{@pending[:reads] ? "1 read" : "no reads"}, " +
+        "#{@pending[:writes] ? "1 write" : "no writes"}"
 
       return false
     end

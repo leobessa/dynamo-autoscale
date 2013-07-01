@@ -15,6 +15,8 @@ Gem::Specification.new do |gem|
 
   gem.bindir   = ['bin']
 
+  gem.license  = 'MIT'
+
   gem.add_dependency 'aws-sdk'
   gem.add_dependency 'rbtree'
   gem.add_dependency 'ruby-prof'

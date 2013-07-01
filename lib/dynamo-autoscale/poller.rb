@@ -14,6 +14,7 @@ module DynamoAutoscale
 
     def run &block
       poll(@opts[:tables]) do |table_name, data|
+        logger.debug "[poller] Got data: #{data}"
         table = DynamoAutoscale.tables[table_name]
 
         times = data.inject([]) do |memo, (_, timeseries)|
