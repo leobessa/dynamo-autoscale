@@ -17,6 +17,6 @@ DynamoAutoscale.rules          = RuleSet.new(ruleset)
 DynamoAutoscale.dispatcher     = Dispatcher.new
 DynamoAutoscale.poller         = CWPoller.new(tables: tables)
 DynamoAutoscale.actioner_class = DynamoActioner
-DynamoAutoscale.actioner_opts  = { group_downscales: true, flush_after: 1.hour }
+DynamoAutoscale.actioner_opts  = { group_downscales: true, flush_after: 2.hours }
 
 DynamoAutoscale.poller.run

@@ -1,16 +1,16 @@
 source 'https://rubygems.org'
 
-gem 'pry'
-gem 'aws-sdk'
-gem 'ripl'
-gem 'timecop'
-gem 'rbtree'
-gem 'ruby-prof'
-gem 'colored'
+gemspec
 
 gem 'activesupport', require: [
   'active_support/all',
 ]
+
+group :development do
+  gem 'pry'
+  gem 'ripl'
+  gem 'timecop'
+end
 
 group :test do
   gem 'rspec'

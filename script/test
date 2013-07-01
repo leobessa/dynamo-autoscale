@@ -19,7 +19,7 @@ DynamoAutoscale.rules          = RuleSet.new(ruleset)
 DynamoAutoscale.dispatcher     = Dispatcher.new
 DynamoAutoscale.poller         = LocalDataPoll.new(tables: tables, filters: filters)
 DynamoAutoscale.actioner_class = LocalActioner
-DynamoAutoscale.actioner_opts  = { group_downscales: true, flush_after: 1.hour }
+DynamoAutoscale.actioner_opts  = { group_downscales: true, flush_after: 2.hours }
 
 # Uncomment this and the below RubyProf lines if you want profiling information.
 # RubyProf.start
