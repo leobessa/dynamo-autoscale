@@ -2,6 +2,7 @@
 
 require_relative '../config/environment/common'
 require 'pp'
+require 'timecop'
 include DynamoAutoscale
 extend  DynamoAutoscale
 

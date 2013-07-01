@@ -9,7 +9,7 @@
 # CloudWatch API.
 
 require_relative '../config/environment/common'
-require 'irb'
+require 'timecop'
 require 'pp'
 include DynamoAutoscale
 

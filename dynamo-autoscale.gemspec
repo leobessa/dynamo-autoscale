@@ -19,6 +19,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'rbtree'
   gem.add_dependency 'ruby-prof'
   gem.add_dependency 'colored'
+  gem.add_dependency 'activesupport'
 
   # ensure the gem is built out of versioned files
   gem.files = `git ls-files -z`.split("\0")

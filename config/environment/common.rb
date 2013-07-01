@@ -1,9 +1,10 @@
-require 'bundler'
 require 'logger'
 require 'time'
 require 'csv'
 require 'tempfile'
-Bundler.require
+require 'aws-sdk'
+require 'active_support/all'
+require 'rbtree'
 
 require_relative '../../lib/dynamo-autoscale/logger'
 require_relative '../../lib/dynamo-autoscale/poller'

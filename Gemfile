@@ -2,10 +2,6 @@ source 'https://rubygems.org'
 
 gemspec
 
-gem 'activesupport', require: [
-  'active_support/all',
-]
-
 group :development do
   gem 'pry'
   gem 'ripl'
