@@ -1,14 +1,11 @@
 #!/usr/bin/env ruby
 
+require 'pp'
+require 'optparse'
+
 # Force this script into production mode as it's the only thing that will
 # actually hit DynamoDB in the entire project.
 ENV['RACK_ENV'] = "production"
-
-require_relative '../config/environment/common'
-require 'pp'
-require 'optparse'
-include DynamoAutoscale
-extend  DynamoAutoscale
 
 actioner_opts = {}
 general_opts  = {}
@@ -38,7 +35,7 @@ OptionParser.new do |opts|
   end
 
   doc = "Sets a minimum value for throughputs to be set to. " +
-    "Defaults to #{Actioner.minimum_throughput}"
+    "Defaults to 10."
 
   opts.on('--minimum-throughput VALUE', Float, doc) do |value|
     if value < 1.0
@@ -46,7 +43,7 @@ OptionParser.new do |opts|
       exit 1
     end
 
-    Actioner.minimum_throughput = value
+    general_opts[:minimum_throughput] = value
   end
 
   opts.on( '-h', '--help', 'Display this screen' ) do
@@ -68,6 +65,10 @@ if actioner_opts[:flush_after] and actioner_opts[:group_downscales].nil?
   exit 1
 end
 
+require_relative '../config/environment/common'
+include DynamoAutoscale
+extend  DynamoAutoscale
+
 dynamo = AWS::DynamoDB.new
 tables.select! do |table_name|
   if dynamo.tables[table_name].exists?
@@ -88,6 +89,10 @@ DynamoAutoscale.dispatcher     = Dispatcher.new
 DynamoAutoscale.poller         = CWPoller.new(tables: tables)
 DynamoAutoscale.actioner_class = general_opts[:dry_run] ? LocalActioner : DynamoActioner
 DynamoAutoscale.actioner_opts  = actioner_opts
+
+if general_opts[:minimum_throughput]
+  Actioner.minimum_throughput = general_opts[:minimum_throughput]
+end
 
 Signal.trap("USR1") do
   logger.info "[signal] Caught SIGUSR1. Dumping CSV for all tables in #{Dir.pwd}"

@@ -13,7 +13,8 @@ Gem::Specification.new do |gem|
   gem.email    = 'developers@getinvisiblehand.com'
   gem.homepage = 'http://github.com/invisiblehand/dynamo-autoscale'
 
-  gem.bindir   = ['bin']
+  gem.bindir      = ['bin']
+  gem.executables = ['dynamo-autoscale']
 
   gem.license  = 'MIT'
 
