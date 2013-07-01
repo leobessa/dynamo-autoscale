@@ -39,7 +39,7 @@ filters = [
 
 DynamoAutoscale.rules          = RuleSet.new(ruleset)
 DynamoAutoscale.dispatcher     = Dispatcher.new
-DynamoAutoscale.poller         = CWPoll.new(tables: tables)
+DynamoAutoscale.poller         = CWPoller.new(tables: tables)
 DynamoAutoscale.actioner_class = LocalActioner
 
 begin

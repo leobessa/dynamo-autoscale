@@ -6,22 +6,41 @@ require 'fileutils'
 
 include DynamoAutoscale
 
-tables    = AWS::DynamoDB.new.tables.to_a.map(&:name).reject { |s| s =~ /dev/ }
-today     = Date.today - 5.day
-yesterday = today - 1.day
-dir       = File.join(DynamoAutoscale.data_dir, yesterday.to_s)
+tables = ARGV
 
-FileUtils.mkdir(dir) unless Dir.exists?(dir)
+if tables.empty?
+  STDERR.puts "Usage: script/historic_data table_name [another_table_name ...]"
+  exit 1
+end
 
-logger.info "Date range: #{yesterday} to #{today}"
+dynamo = AWS::DynamoDB.new
+range  = (Date.today - 5.days).upto(Date.today)
+logger.info "Date range: #{range.to_a}"
 
-tables.each do |table|
-  logger.info "Collecting data for #{table}..."
-  File.open(File.join(dir, "#{table}.json"), 'w') do |file|
-    file.write(JSON.pretty_generate(Metrics.all_metrics(table, {
-      period:     5.minutes,
-      start_time: yesterday,
-      end_time:   today,
-    })))
+# Filter out tables that do not exist in Dynamo.
+tables.select! do |table|
+  if dynamo.tables[table].exists?
+    true
+  else
+    logger.error "Table #{table} does not exist. Skipping."
+    false
+  end
+end
+
+range.each do |start_day|
+  dir     = File.join(DynamoAutoscale.data_dir, start_day.to_s)
+  end_day = start_day + 1.day
+
+  FileUtils.mkdir(dir) unless Dir.exists?(dir)
+
+  tables.each do |table|
+    logger.info "Collecting data for #{table} on #{start_day}..."
+    File.open(File.join(dir, "#{table}.json"), 'w') do |file|
+      file.write(JSON.pretty_generate(Metrics.all_metrics(table, {
+        period:     5.minutes,
+        start_time: start_day,
+        end_time:   end_day,
+      })))
+    end
   end
 end

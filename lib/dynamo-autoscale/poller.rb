@@ -1,5 +1,13 @@
 module DynamoAutoscale
   class Poller
+    # The poller constructor accepts a hash of options. The following arguments
+    # are valid but optional:
+    #
+    #   - :tables  - An array of the tables you would like to poll.
+    #   - :filters - This is primarily for working with local data but there
+    #   could maybe be a production use for it. Locally, it is used to modify
+    #   each datum before it gets sent to the dispatcher. It helps fake setting
+    #   provisioned throughput.
     def initialize opts = {}
       @opts = opts
     end

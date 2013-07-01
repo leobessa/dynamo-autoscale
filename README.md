@@ -80,8 +80,8 @@ If you want to test rules on your local machine without having to query
 CloudWatch or hit DynamoDB, there are tools that facilitate that nicely.
 
 The first thing you would need to do is gather some historic data. There's a
-script called `script/historic_data` that you can run to gather data on all of
-your tables and store them into the `data/` directory in a format that all of
+script called `script/historic_data` that you can run to gather data on a
+specific table and store it into the `data/` directory in a format that all of
 the other scripts are familiar with.
 
 Next there are a couple of things you can do.

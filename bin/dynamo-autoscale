@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+
+require_relative '../config/environment/common'
+require 'pp'
+include DynamoAutoscale
+extend  DynamoAutoscale
+
+ruleset = ARGV.shift
+tables  = ARGV
+
+if tables.empty? or ruleset.nil?
+  STDERR.puts "Usage: dynamo-autoscale ruleset table_name [another_table_name ... ]"
+  exit 1
+end
+
+DynamoAutoscale.rules          = RuleSet.new(ruleset)
+DynamoAutoscale.dispatcher     = Dispatcher.new
+DynamoAutoscale.poller         = CWPoller.new(tables: tables)
+DynamoAutoscale.actioner_class = DynamoActioner
+DynamoAutoscale.actioner_opts  = { group_downscales: true, flush_after: 1.hour }
+
+DynamoAutoscale.poller.run

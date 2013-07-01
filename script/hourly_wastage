@@ -3,10 +3,6 @@
 # This script calculate an approximate "wastage cost" for every table (wastage
 # cost is defined as provisioned throughout - consumed throughput, so throughput
 # that was paid for but not used).
-#
-# Results:
-#
-#   18th June 2013: $2.148 per hour.
 
 require_relative '../config/environment/common'
 include DynamoAutoscale

@@ -3,7 +3,7 @@ module DynamoAutoscale
     include DynamoAutoscale::Logger
 
     # TODO: This time window may need changing.
-    TIME_WINDOW = 14.days
+    TIME_WINDOW = 7.days
 
     attr_reader :name, :data
 
@@ -25,7 +25,7 @@ module DynamoAutoscale
     #    :consumed_writes=>52.693333333333335,
     #    :consumed_reads=>342.4033333333333}
     def tick time, datum
-      if time < Time.now - TIME_WINDOW
+      if time < (Time.now.utc - TIME_WINDOW)
         logger.warn "Attempted to insert data outside of the time window."
         return
       end
@@ -40,6 +40,12 @@ module DynamoAutoscale
       end
 
       @data[time] = datum
+
+      # The code below here just makes sure that we're trimming data points that
+      # are outside of the time window.
+      now = Time.now.utc
+      to_delete = @data.each.take_while { |key, _| key < (now - TIME_WINDOW) }
+      to_delete.each { |key, _| @data.delete(key) }
     end
 
     # Gets the last amount of provisioned throughput for whatever metric you
@@ -255,9 +261,9 @@ module DynamoAutoscale
       path
     end
 
-    def graph!
+    def graph! opts = {}
       data_tmp = File.join(Dir.tmpdir, 'data.csv')
-      png_tmp  = File.join(Dir.tmpdir, 'graph.png')
+      png_tmp  = opts[:path] || File.join(Dir.tmpdir, 'graph.png')
       r_script = File.join(DynamoAutoscale.root, 'rlib', 'dynamodb_graph.r')
 
       to_csv!(data_tmp)
@@ -267,8 +273,10 @@ module DynamoAutoscale
       if $? != 0
         logger.error "Failed to create graph."
       else
-        `open #{png_tmp}`
+        `open #{png_tmp}` if opts[:open]
       end
+
+      png_tmp
     end
 
     def scatterplot_for! metric

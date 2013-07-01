@@ -10,7 +10,7 @@ ruleset = ARGV.shift
 tables  = ARGV
 
 if tables.empty? or ruleset.nil?
-  STDERR.puts "Usage: script/test ruleset table_name [another_table_name ... ]"
+  STDERR.puts "Usage: script/test ruleset table_name [another_table_name ... ] [-g|--graph]"
   exit 1
 end
 
@@ -43,5 +43,9 @@ tables.each do |table_name|
   table = DynamoAutoscale.tables[table_name]
 
   table.report!
-  table.graph! if graph
+
+  if graph
+    path = table.graph! open: true
+    puts "Graph saved to #{path}"
+  end
 end

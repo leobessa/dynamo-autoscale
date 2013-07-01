@@ -200,4 +200,57 @@ describe DynamoAutoscale::TableTracker do
       it      { should be_nil }
     end
   end
+
+  describe 'time window' do
+    describe 'inserting data outside of time window' do
+      before do
+        table.clear_data
+        table.tick(12.weeks.ago, {
+          provisioned_reads: 600.0,
+          provisioned_writes: 800.0,
+          consumed_reads: 20.0,
+          consumed_writes: 30.0,
+        })
+      end
+
+      it 'should not work' do
+        table.all_times.should be_empty
+      end
+    end
+
+    describe 'data time based cleanup' do
+      before do
+        table.clear_data
+        Timecop.travel(2.weeks.ago)
+
+        table.tick(Time.now, {
+          provisioned_reads: 600.0,
+          provisioned_writes: 800.0,
+          consumed_reads: 20.0,
+          consumed_writes: 30.0,
+        })
+
+        to_the_future = Time.now + DynamoAutoscale::TableTracker::TIME_WINDOW +
+          2.minutes
+
+        Timecop.travel(to_the_future)
+
+        table.tick(Time.now, {
+          provisioned_reads: 600.0,
+          provisioned_writes: 800.0,
+          consumed_reads: 20.0,
+          consumed_writes: 30.0,
+        })
+      end
+
+      it 'should remove data outside of the time window' do
+        table.all_times.length.should == 1
+      end
+
+      it 'should not remove data inside of the time window' do
+        table.tick(Time.now, {})
+        table.all_times.length.should == 2
+      end
+    end
+  end
 end

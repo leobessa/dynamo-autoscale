@@ -83,7 +83,7 @@ module DynamoAutoscale
           "more than allowed. Capped scale to #{to}."
       end
 
-      logger.info "[#{metric.to_s.ljust(6)}][scaling #{"up".blue}] " +
+      logger.info "[#{metric.to_s.ljust(6)}][scaling up] " +
         "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
 
 
@@ -100,7 +100,7 @@ module DynamoAutoscale
       if @downscales >= 4
         unless @downscale_warn
           @downscale_warn = true
-          logger.warn "[#{metric.to_s.ljust(6)}][scaling #{"failed".red}]" +
+          logger.warn "[#{metric.to_s.ljust(6)}][scaling failed]" +
             " Hit upper limit of downward scales per day."
         end
 
@@ -109,10 +109,10 @@ module DynamoAutoscale
 
       if @pending[metric]
         previous_pending = @pending[metric].last
-        logger.info "[#{metric.to_s.ljust(6)}][scaling #{"down".blue}] " +
+        logger.info "[#{metric.to_s.ljust(6)}][scaling down] " +
           "#{previous_pending} -> #{to.round(2)} (overwritten pending)"
       else
-        logger.info "[#{metric.to_s.ljust(6)}][scaling #{"down".blue}] " +
+        logger.info "[#{metric.to_s.ljust(6)}][scaling down] " +
           "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
       end
 
@@ -197,8 +197,18 @@ module DynamoAutoscale
         return true
       end
 
+      now = Time.now.utc
+
+      # I know what you're thinking. How would the last action ever be in the
+      # future? Locally, we use Timecop to fake out the time. Unfortunately it
+      # doesn't kick in until after the first data point, so when this object is
+      # created the @last_action is set to Time.now.utc, then the time gets
+      # rolled back, causing the last action to be in the future. This hack
+      # fixes that.
+      @last_action = now if @last_action > now
+
       if (@opts[:flush_after] and @last_action and
-        (Time.now.utc > @last_action + @opts[:flush_after]))
+        (now > @last_action + @opts[:flush_after]))
 
         logger.info "[flush] Flush timeout of #{@opts[:flush_after]} reached."
         return true

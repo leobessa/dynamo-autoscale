@@ -1,5 +1,5 @@
 module DynamoAutoscale
-  class CWPoll < Poller
+  class CWPoller < Poller
     INTERVAL = 1.minute
 
     def poll tables, &block

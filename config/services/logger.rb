@@ -11,7 +11,7 @@ DynamoAutoscale.with_config 'logger' do |config|
 
   DynamoAutoscale::Logger.logger = ::Logger.new(STDOUT)
 
-  if STDOUT.fileno == 1
+  if ENV['PRETTY_GRAPH']
     DynamoAutoscale::Logger.logger.formatter = DynamoAutoscale::PrettyFormatter.new
   else
     DynamoAutoscale::Logger.logger.formatter = Logger::Formatter.new
