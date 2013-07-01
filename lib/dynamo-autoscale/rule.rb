@@ -12,6 +12,58 @@ module DynamoAutoscale
       @opts   = opts
       @block  = block
       @count  = Hash.new(0)
+
+      unless [:consumed_reads, :consumed_writes].include? @metric
+        raise ArgumentError.new("Invalid metric: #{@metric}. Must be either " +
+                                ":consumed_reads or :consumed_writes.")
+      end
+
+      if @opts[:greater_than].nil? and @opts[:less_than].nil?
+        raise ArgumentError.new("Must specify at least one of greater_than " +
+          "or less_than")
+      end
+
+      if @opts[:for].nil? and @opts[:last].nil?
+        raise ArgumentError.new("Need to specify at least one of :for and :last.")
+      end
+
+      if @opts[:greater_than] and @opts[:less_than] and
+        @opts[:greater_than].to_f >= @opts[:less_than].to_f
+        raise ArgumentError.new("greater_than cannot be greater than or " +
+                                "equal to less_than. Rule will never trigger.")
+      end
+
+      if @opts[:greater_than] and @opts[:greater_than].to_f <= 0
+        raise ArgumentError.new("greater_than cannot be less than or equal to 0")
+      end
+
+      if @opts[:less_than] and @opts[:less_than].to_f <= 0
+        raise ArgumentError.new("less_than cannot be less than or equal to 0")
+      end
+
+      if @opts[:min] and @opts[:min] <= 0
+        raise ArgumentError.new("min cannot be less than or equal to 0")
+      end
+
+      if @opts[:max] and @opts[:max] <= 0
+        raise ArgumentError.new("max cannot be less than or equal to 0")
+      end
+
+      if @opts[:count] and @opts[:count] <= 0
+        raise ArgumentError.new("count cannot be less than or equal to 0")
+      end
+
+      if @opts[:scale].nil? and block.nil?
+        raise ArgumentError.new("no :scale option or block specified. Rule has no action.")
+      end
+
+      if @opts[:scale] and !@opts[:scale].is_a? Hash
+        raise ArgumentError.new(":scale option expects to be a hash.")
+      end
+
+      if @opts[:scale] and @opts[:scale][:on].nil? and @opts[:scale][:by].nil?
+        raise ArgumentError.new(":scale option expects :on and :by options.")
+      end
     end
 
     def test table

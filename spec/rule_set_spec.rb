@@ -5,15 +5,24 @@ describe DynamoAutoscale::RuleSet do
     let :rules do
       DynamoAutoscale::RuleSet.new do
         table "test" do
-          reads  greater_than: 50, for: 5.minutes
-          writes greater_than: 100, for: 15.minutes
+          reads  greater_than: 50, for: 5.minutes do
+
+          end
+
+          writes greater_than: 100, for: 15.minutes do
+
+          end
         end
 
         table :all do
-          reads less_than: 20, for: 2
+          reads less_than: 20, for: 2 do
+
+          end
         end
 
-        writes greater_than: "40%", for: 12.seconds
+        writes greater_than: "40%", for: 12.seconds do
+
+        end
       end
     end
 

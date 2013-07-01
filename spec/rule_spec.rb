@@ -5,17 +5,137 @@ describe DynamoAutoscale::Rule do
 
   describe 'basics' do
     let(:rule) do
-      DynamoAutoscale::Rule.new(:consumed_reads, greater_than: 5, last: 2)
+      DynamoAutoscale::Rule.new(:consumed_reads, greater_than: 5, last: 2) do
+
+      end
     end
 
     subject          { rule }
     its(:to_english) { should be_a String }
   end
 
+  describe 'invalid rules' do
+    describe 'no greater_than or less_than' do
+      it 'should throw an error' do
+        expect do
+          DynamoAutoscale::Rule.new(:consumed_reads, last: 2) do
+
+          end
+        end.to raise_error ArgumentError
+      end
+    end
+
+    describe 'greater_than and less_than make no logical sense' do
+      it 'should throw an error' do
+        expect do
+          DynamoAutoscale::Rule.new(:consumed_reads, greater_than: 5, less_than: 2) do
+
+          end
+        end.to raise_error ArgumentError
+      end
+
+      it 'percentages should also throw an error' do
+        expect do
+          DynamoAutoscale::Rule.new(:consumed_reads, for: 1, greater_than: "5%", less_than: "2%") do
+
+          end
+        end.to raise_error ArgumentError
+      end
+    end
+
+    describe 'greater_than less than 0' do
+      it 'should throw an error' do
+        expect do
+          DynamoAutoscale::Rule.new(:consumed_reads, for: 1, greater_than: -1) do
+
+          end
+        end.to raise_error ArgumentError
+      end
+
+      it 'percentages should also throw an error' do
+        expect do
+          DynamoAutoscale::Rule.new(:consumed_reads, for: 1, greater_than: "-5%") do
+
+          end
+        end.to raise_error ArgumentError
+      end
+    end
+
+    describe 'less_than less than 0' do
+      it 'should throw an error' do
+        expect do
+          DynamoAutoscale::Rule.new(:consumed_reads, for: 1, less_than: -1) do
+
+          end
+        end.to raise_error ArgumentError
+      end
+
+      it 'percentages should also throw an error' do
+        expect do
+          DynamoAutoscale::Rule.new(:consumed_reads, for: 1, less_than: "-5%") do
+
+          end
+        end.to raise_error ArgumentError
+      end
+    end
+
+    describe 'min less than 0' do
+      it 'should throw an error' do
+        expect do
+          DynamoAutoscale::Rule.new(:consumed_reads, for: 1, greater_than: 1, min: -1) do
+
+          end
+        end.to raise_error ArgumentError
+      end
+    end
+
+    describe 'max less than 0' do
+      it 'should throw an error' do
+        expect do
+          DynamoAutoscale::Rule.new(:consumed_reads, for: 1, greater_than: 1, max: -1) do
+
+          end
+        end.to raise_error ArgumentError
+      end
+    end
+
+    describe 'count less than 0' do
+      it 'should throw an error' do
+        expect do
+          DynamoAutoscale::Rule.new(:consumed_reads, for: 1, greater_than: 1, count: -1) do
+
+          end
+        end.to raise_error ArgumentError
+      end
+    end
+
+    describe 'incorrect metrics' do
+      it 'should throw an error' do
+        expect do
+          DynamoAutoscale::Rule.new(:whoops, for: 1, greater_than: 1) do
+
+          end
+        end.to raise_error ArgumentError
+      end
+    end
+
+    describe 'scale' do
+      describe 'scale and block are not given' do
+        it 'should throw an error' do
+          expect do
+            DynamoAutoscale::Rule.new(:consumed_reads, last: 1, greater_than: 1)
+          end.to raise_error ArgumentError
+        end
+      end
+    end
+  end
+
   describe "test" do
     describe "should match" do
       let(:rule) do
-        DynamoAutoscale::Rule.new(:consumed_reads, greater_than: 5, last: 2)
+        DynamoAutoscale::Rule.new(:consumed_reads, greater_than: 5, last: 2) do
+
+        end
       end
 
       before do
@@ -36,7 +156,9 @@ describe DynamoAutoscale::Rule do
 
     describe 'should not match' do
       let(:rule) do
-        DynamoAutoscale::Rule.new(:consumed_reads, greater_than: 5, last: 2)
+        DynamoAutoscale::Rule.new(:consumed_reads, greater_than: 5, last: 2) do
+
+        end
       end
 
       context 'too few data points' do
@@ -74,7 +196,9 @@ describe DynamoAutoscale::Rule do
         let(:rule) do
           DynamoAutoscale::Rule.new(:consumed_reads, {
             greater_than: 5, for: 10.minutes, min: 2
-          })
+          }) do
+
+          end
         end
 
         before do
@@ -102,7 +226,9 @@ describe DynamoAutoscale::Rule do
         let(:rule) do
           DynamoAutoscale::Rule.new(:consumed_writes, {
             greater_than: 5, for: 10.minutes, min: 2
-          })
+          }) do
+
+          end
         end
 
         context 'too few data points in range' do
@@ -154,7 +280,9 @@ describe DynamoAutoscale::Rule do
         let(:rule) do
           DynamoAutoscale::Rule.new(:consumed_writes, {
             greater_than: 5, for: 10.minutes, min: 2, max: 2
-          })
+          }) do
+
+          end
         end
 
         describe 'should match' do
@@ -207,7 +335,9 @@ describe DynamoAutoscale::Rule do
       let(:rule) do
         DynamoAutoscale::Rule.new(:consumed_writes, {
           greater_than: "50%", for: 10.minutes, min: 2
-        })
+        }) do
+
+        end
       end
 
       describe 'should match' do
@@ -259,7 +389,9 @@ describe DynamoAutoscale::Rule do
       let :rule do
         DynamoAutoscale::Rule.new(:consumed_reads, {
           greater_than: 5, last: 2, times: 3, min: 2
-        })
+        }) do
+
+        end
       end
 
       describe 'should not match' do

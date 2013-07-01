@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+require_relative '../config/environment/common'
+include DynamoAutoscale
+extend  DynamoAutoscale
+
+ruleset = ARGV.shift
+
+if ruleset.nil?
+  STDERR.puts "Usage: script/validate_ruleset ruleset"
+  exit 1
+end
+
+begin
+  RuleSet.new(ruleset)
+  puts "Rules seem legit."
+rescue ArgumentError => e
+  puts "Ruleset has problem: #{e.message}"
+  exit 1
+end
