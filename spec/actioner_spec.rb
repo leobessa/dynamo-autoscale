@@ -43,9 +43,13 @@ describe DynamoAutoscale::Actioner do
 
     it "once per day at midnight" do
       actioner.set(:writes, 90)
+      Timecop.travel(10.seconds.from_now)
       actioner.set(:writes, 80)
+      Timecop.travel(10.seconds.from_now)
       actioner.set(:writes, 70)
+      Timecop.travel(10.seconds.from_now)
       actioner.set(:writes, 60)
+      Timecop.travel(10.seconds.from_now)
       actioner.set(:writes, 50)
 
       actioner.provisioned_writes.length.should == 4
@@ -57,9 +61,13 @@ describe DynamoAutoscale::Actioner do
       Timecop.travel(1.day.from_now.utc.midnight)
 
       actioner.set(:writes, 50)
+      Timecop.travel(10.seconds.from_now)
       actioner.set(:writes, 40)
+      Timecop.travel(10.seconds.from_now)
       actioner.set(:writes, 30)
+      Timecop.travel(10.seconds.from_now)
       actioner.set(:writes, 20)
+      Timecop.travel(10.seconds.from_now)
       actioner.set(:writes, 10)
 
       actioner.provisioned_writes.length.should == 8

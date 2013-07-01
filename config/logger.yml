@@ -1,5 +1,5 @@
 test:
-  :level: ERROR
+  :level: INFO
   :sync:  false
 
 development:

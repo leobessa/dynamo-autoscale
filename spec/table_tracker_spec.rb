@@ -248,7 +248,7 @@ describe DynamoAutoscale::TableTracker do
       end
 
       it 'should not remove data inside of the time window' do
-        table.tick(Time.now, {})
+        table.tick(2.seconds.from_now, {})
         table.all_times.length.should == 2
       end
     end
