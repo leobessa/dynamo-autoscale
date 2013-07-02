@@ -1,0 +1,9 @@
+v0.1.1
+
+- Added peace-of-mind logging when the program starts so you can actually tell
+	it's running.
+- Added Ruby 1.9.3 requirement and R requirement to the gemspec.
+
+v0.1
+
+- Initial release.
