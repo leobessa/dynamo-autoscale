@@ -11,14 +11,14 @@ module DynamoAutoscale
       if datum[:provisioned_reads] and (datum[:consumed_reads] > datum[:provisioned_reads])
         lost_reads = datum[:consumed_reads] - datum[:provisioned_reads]
 
-        logger.warn "[reads] Lost units: #{lost_reads} " +
+        logger.warn "[dispatcher][reads] Lost units: #{lost_reads} " +
           "(#{datum[:consumed_reads]} - #{datum[:provisioned_reads]})"
       end
 
       if datum[:provisioned_writes] and (datum[:consumed_writes] > datum[:provisioned_writes])
         lost_writes = datum[:consumed_writes] - datum[:provisioned_writes]
 
-        logger.warn "[writes] Lost units: #{lost_writes} " +
+        logger.warn "[dispatcher][writes] Lost units: #{lost_writes} " +
           "(#{datum[:consumed_writes]} - #{datum[:provisioned_writes]})"
       end
 
@@ -29,7 +29,8 @@ module DynamoAutoscale
         DynamoAutoscale.rules.test(table)
         @last_check[table.name] = time
       else
-        logger.debug "Skipped rule check, already checked for a later data point."
+        logger.debug "[dispatcher] Skipped rule check, already checked for " +
+          "a later data point."
       end
 
       DynamoAutoscale.current_table = nil

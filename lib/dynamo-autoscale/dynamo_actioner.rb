@@ -1,5 +1,9 @@
 module DynamoAutoscale
   class DynamoActioner < Actioner
+    def dynamo
+      @dynamo ||= AWS::DynamoDB.new.tables[table.name]
+    end
+
     def scale metric, value
       aws_throughput_key = case metric
       when :reads
@@ -12,22 +16,18 @@ module DynamoAutoscale
     end
 
     def scale_both reads, writes
-      dynamo_scale(table, {
-        read_capacity_units: reads, write_capacity_units: writes
-      })
+      dynamo_scale(read_capacity_units: reads, write_capacity_units: writes)
     end
 
     private
 
-    def self.dynamo_scale opts
-      aws_table = AWS::DynamoDB.new.tables[table.name]
-
-      if aws_table.status == :updating
-        logger.warn "Cannot scale throughputs. Table is updating."
+    def dynamo_scale opts
+      if dynamo.status == :updating
+        logger.warn "[actioner] Cannot scale throughputs. Table is updating."
         return false
       end
 
-      aws_table.provision_throughput(opts)
+      dynamo.provision_throughput(opts)
       return true
     rescue AWS::DynamoDB::Errors::ValidationException => e
       # When you try to set throughput to a negative value or the same value it

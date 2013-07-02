@@ -12,7 +12,7 @@ module DynamoAutoscale
         # polling always happens on interval boundaries regardless of how long
         # polling takes.
         sleep_duration = INTERVAL - ((Time.now.to_i + INTERVAL) % INTERVAL)
-        logger.debug "Sleeping for #{sleep_duration} seconds..."
+        logger.debug "[cw_poller] Sleeping for #{sleep_duration} seconds..."
         sleep(sleep_duration)
 
         do_poll(tables, &block)
@@ -20,7 +20,7 @@ module DynamoAutoscale
     end
 
     def do_poll tables, &block
-      logger.debug "Beginning CloudWatch poll..."
+      logger.debug "[cw_poller] Beginning CloudWatch poll..."
       now = Time.now
 
       tables.each do |table|

@@ -26,7 +26,7 @@ module DynamoAutoscale
     #    :consumed_reads=>342.4033333333333}
     def tick time, datum
       if time < (Time.now.utc - TIME_WINDOW)
-        logger.warn "Attempted to insert data outside of the time window."
+        logger.warn "[table] Attempted to insert data outside of the time window."
         return
       end
 
@@ -36,14 +36,14 @@ module DynamoAutoscale
         datum[:provisioned_writes] = last_provisioned_for :writes, at: time
 
         if datum[:provisioned_writes]
-          logger.debug "Filled in gap in provisioned writes."
+          logger.debug "[table] Filled in gap in provisioned writes."
         end
       end
       if datum[:provisioned_reads].nil?
         datum[:provisioned_reads] = last_provisioned_for :reads, at: time
 
         if datum[:provisioned_reads]
-          logger.debug "Filled in gap in provisioned reads."
+          logger.debug "[table] Filled in gap in provisioned reads."
         end
       end
 
@@ -51,7 +51,7 @@ module DynamoAutoscale
 
       # The code below here just makes sure that we're trimming data points that
       # are outside of the time window.
-      logger.debug "Pruning data that may be outside of time window..."
+      logger.debug "[table] Pruning data that may be outside of time window..."
       now = Time.now.utc
       to_delete = @data.each.take_while { |key, _| key < (now - TIME_WINDOW) }
       to_delete.each { |key, _| @data.delete(key) }
@@ -280,7 +280,7 @@ module DynamoAutoscale
       `r --no-save --args #{data_tmp} #{png_tmp} < #{r_script}`
 
       if $? != 0
-        logger.error "Failed to create graph."
+        logger.error "[table] Failed to create graph."
       else
         `open #{png_tmp}` if opts[:open]
       end
@@ -298,7 +298,7 @@ module DynamoAutoscale
       `r --no-save --args #{data_tmp} #{png_tmp} < #{r_script}`
 
       if $? != 0
-        logger.error "Failed to create graph."
+        logger.error "[table] Failed to create graph."
       else
         `open #{png_tmp}`
       end
