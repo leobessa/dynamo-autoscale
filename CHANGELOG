@@ -1,3 +1,9 @@
+v0.1.4
+
+- Fixed a bug that stopped all rule evaluation after the first rule passed. Now
+	all read rules and write rules are executed separately and only short circuit
+	per metric.
+
 v0.1.3
 
 - Minor logging tweaks.
