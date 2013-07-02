@@ -1,26 +1,6 @@
 # DynamoDB Autoscaling
 
-Welcome to the delightful mini-game that is DynamoDB provisioned throughputs.
-Here are the rules of the game:
-
-  - In a single API call, you can only change your threshold by up to 100% in
-  	either direction. In other words, you can decrease as much as you want but
-  	you can only increase to up to double what the current threshold is.
-
-  - You may scale up as many times per day as you like, however you may only
-  	scale down 4 times per day per table. (If you scale both reads and writes
-  	down in the same request, that only counts as 1 scale used)
-
-  - Scaling is not an instantaneous event.
-
-  - Small spikes over your threshold are tolerated but the exact amount of time
-  	they are tolerated for seems to vary.
-
-This project aims to take all of this into consideration and automatically scale
-your throughputs to enable you to deal with spikes and save money where
-possible.
-
-**IMPORTANT**: It's highly recommended that you read this README before
+*IMPORTANT*: It's highly recommended that you read this README before
 continuing. This project, if used incorrectly, has a lot of potential to cost
 you huge amounts of money. Proceeding with caution is paramount, as we cannot be
 held responsible for misuse that leads to excessive cost on your part.
@@ -33,6 +13,29 @@ inspecting the log output to make sure it is doing what you expect.
 It is also worth noting that this project is very much in its infancy.
 
 You have been warned.
+
+## Rules of the game
+
+Welcome to the delightful mini-game that is DynamoDB provisioned throughputs.
+Here are the rules of the game:
+
+  - In a single API call, you can only change your throughput by up to 100% in
+  	either direction. In other words, you can decrease as much as you want but
+  	you can only increase to up to double what the current throughput is.
+
+  - You may scale up as many times per day as you like, however you may only
+  	scale down 4 times per day per table. (If you scale both reads and writes
+  	down in the same request, that only counts as 1 downscale used)
+
+  - Scaling is not an instantaneous event. It can take up to 5 minutes for a
+  	table's throughput to be updated.
+
+  - Small spikes over your threshold are tolerated but the exact amount of time
+  	they are tolerated for seems to vary.
+
+This project aims to take all of this into consideration and automatically scale
+your throughputs to enable you to deal with spikes and save money where
+possible.
 
 # Configuration
 
@@ -47,7 +50,7 @@ The project will look for a YAML file in the following locations on start up:
 If it doesn't find an AWS YAML config in any of those locations, the process
 prints an error and exits.
 
-**A sample config can be found in the project root directory.**
+*A sample config can be found in the project root directory.*
 
 # Usage
 
@@ -55,7 +58,7 @@ First of all, you'll need to install this project as a gem:
 
     $ gem install dynamo-autoscale
 
-This will give you access to the `dynamo-autoscale` executable file. For some
+This will give you access to the `dynamo-autoscale` executable. For some
 internal documentation on the executable, you can run:
 
     $ dynamo-autoscale -h
@@ -80,10 +83,13 @@ reads  for:  2.hours, less_than: "50%", min: 2, scale: { on: :consumed, by: 2 }
 writes for:  2.hours, less_than: "50%", min: 2, scale: { on: :consumed, by: 2 }
 ```
 
+You would put this ruleset in a file and then pass that file in as the first
+argument to `dynamo-autoscale` on the command line.
+
 The first two rules are designed to deal with spikes. They are saying that if
 the consumed capacity units is greater than %90 of the provisioned throughput
 for a single data point, scale the provisioned throughput up by the last
-consumed units multipled by two.
+consumed units multiplied by two.
 
 For example, if we had a provisioned reads of 100 and a consumed units of
 95 comes through, that will trigger that rule and the table will be scaled up to
@@ -93,11 +99,12 @@ The last two rules are controlling downscaling. Because downscaling can only
 happen 4 times per day per table, the rules are far less aggressive. Those rules
 are saying: if the consumed capacity is less than 50% of the provisioned for a
 whole two hours, with a minimum of 2 data points, scale the provisioned
-throughput to the consumed units multipled by 2.
+throughput to the consumed units multiplied by 2.
 
 ### The :last and :for options
 
-These options declare how many points or what time range you want to examine. If
+These options declare how many points or what time range you want to examine.
+They're aliases of each other and if you specify both, one will be ignored. If
 you don't specify a `:min` or `:max` option, they will just get as many points
 as they can and evaluate the rest of the rule even if they don't get a full 2
 hours of data, or a full 6 points of data. This only affects the start of the
