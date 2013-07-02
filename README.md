@@ -177,7 +177,7 @@ writes for: 2.hours, greater_than: 200 do |table, rule, actioner|
 end
 ```
 
-This rule will set the provisioned write throughout to 300 if the consumed
+This rule will set the provisioned write throughput to 300 if the consumed
 writes are greater than 200 for 2 hours. The actioner handles a tonne of things
 under the hood, such as making sure you don't scale up more than you're allowed
 to in a single call and making sure you don't try to change a table when it's in
