@@ -201,7 +201,26 @@ happen when the table receives new data from cloud watch, which means that the
 
 ## Downscale grouping
 
-TODO: THIS.
+You can downscale reads or writes individually and this will cost you one of
+your four downscales for the current day. Or, you can downscale reads and writes
+at the same time and this also costs you one of your four. (Reference:
+http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
+
+Because of this, the actioner can handle the grouping up of downscales. Let's
+say you passed in the following options in at the command line:
+
+    $ dynamo-autoscale some/ruleset.rb some_table --group-downscales --flush-after 300
+
+What this is saying is that if a write downscale came in, the actioner wouldn't
+fire it off immediately. It would wait 300 seconds, or 5 minutes, to see if a
+corresponding read downscale was triggered and would run them both at the same
+time. If no corresponding read came in, after 5 minutes the pending write
+downscale would get "flushed" and applied without a read downscale.
+
+This technique helps to save downscales on tables that may have unpredictable
+consumption. You may need to tweak the `--flush-after` value to match your own
+situation. By default, there is no `--flush-after` and downscales will wait
+indefinitely, this may not be desirable.
 
 # Developers
 
