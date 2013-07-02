@@ -19,9 +19,18 @@ module DynamoAutoscale
     end
 
     def test table
-      self.for(table.name).each do |rule|
-        return true if rule.test(table)
+      result = false
+      rules  = self.for(table.name)
+
+      rules.select(&:reads?).each do |rule|
+        break result = true if rule.test(table)
       end
+
+      rules.select(&:writes?).each do |rule|
+        break result = true if rule.test(table)
+      end
+
+      result
     end
 
     def table table_name, &block

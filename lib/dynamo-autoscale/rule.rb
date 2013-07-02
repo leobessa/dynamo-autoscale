@@ -174,6 +174,14 @@ module DynamoAutoscale
       message
     end
 
+    def reads?
+      @metric == :consumed_reads
+    end
+
+    def writes?
+      @metric == :consumed_writes
+    end
+
     def serialize
       metric = @metric == :consumed_reads ? "reads" : "writes"
 
