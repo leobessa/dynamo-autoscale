@@ -18,6 +18,11 @@ Gem::Specification.new do |gem|
 
   gem.license  = 'MIT'
 
+  gem.required_ruby_version = '>= 1.9.3'
+
+  gem.requirements << "If you want to graph your tables, you'll need R with " +
+    "the ggplot and reshape packages installed."
+
   gem.add_dependency 'aws-sdk'
   gem.add_dependency 'rbtree'
   gem.add_dependency 'ruby-prof'

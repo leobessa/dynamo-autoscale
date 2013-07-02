@@ -29,8 +29,7 @@ module DynamoAutoscale
         DynamoAutoscale.rules.test(table)
         @last_check[table.name] = time
       else
-        logger.debug "#{table.name}: Skipped rule check, already checked for " +
-          "a later data point."
+        logger.debug "Skipped rule check, already checked for a later data point."
       end
 
       DynamoAutoscale.current_table = nil

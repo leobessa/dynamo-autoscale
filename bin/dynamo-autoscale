@@ -77,6 +77,7 @@ require_relative '../config/environment/common'
 include DynamoAutoscale
 extend  DynamoAutoscale
 
+logger.debug "Ensuring tables exist in DynamoDB..."
 dynamo = AWS::DynamoDB.new
 tables.select! do |table_name|
   if dynamo.tables[table_name].exists?
@@ -98,6 +99,7 @@ if general_opts[:dry_run]
   poller_opts[:filters] = LocalActioner.faux_provisioning_filters
 end
 
+logger.debug "Assigning global objects..."
 DynamoAutoscale.rules          = RuleSet.new(ruleset)
 DynamoAutoscale.dispatcher     = Dispatcher.new
 DynamoAutoscale.poller         = CWPoller.new(poller_opts)
@@ -112,6 +114,7 @@ if general_opts[:maximum_throughput]
   Actioner.maximum_throughput = general_opts[:maximum_throughput]
 end
 
+logger.debug "Registering signal handlers..."
 Signal.trap("USR1") do
   logger.info "[signal] Caught SIGUSR1. Dumping CSV for all tables in #{Dir.pwd}"
 
@@ -128,4 +131,5 @@ Signal.trap("USR2") do
   end
 end
 
+logger.info "Finished setup. Starting polling loop."
 DynamoAutoscale.poller.run

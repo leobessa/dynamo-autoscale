@@ -158,10 +158,6 @@ module DynamoAutoscale
     end
 
     def queue_operation! metric, value
-      if @pending[metric]
-        logger.debug "[#{metric}] Overwriting pending op with #{value.round(2)}"
-      end
-
       @pending[metric] = [Time.now.utc, value]
 
       try_flush!
