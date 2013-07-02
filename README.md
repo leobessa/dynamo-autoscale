@@ -87,7 +87,7 @@ You would put this ruleset in a file and then pass that file in as the first
 argument to `dynamo-autoscale` on the command line.
 
 The first two rules are designed to deal with spikes. They are saying that if
-the consumed capacity units is greater than %90 of the provisioned throughput
+the consumed capacity units is greater than 90% of the provisioned throughput
 for a single data point, scale the provisioned throughput up by the last
 consumed units multiplied by two.
 
@@ -229,10 +229,11 @@ consumption. You may need to tweak the `--flush-after` value to match your own
 situation. By default, there is no `--flush-after` and downscales will wait
 indefinitely, this may not be desirable.
 
-# Developers
+# Developers / Tooling
 
 Everything below this part of the README is intended for people that want to
-work on the dynamo-autoscale codebase.
+work on the dynamo-autoscale codebase or use the internal tools that we use for
+testing new rulesets.
 
 ## Technical details
 
@@ -265,7 +266,8 @@ that needed them.
 
 They're also completely swappable. As long as they implement the right methods
 you can get your data from anywhere, dispatch your data to anywhere and send
-your actions to whatever you want. The defaults all work on local data.
+your actions to whatever you want. The defaults all work on local data gathered
+with the `script/historic_data` executable.
 
 ## Testing rules locally
 
@@ -299,6 +301,13 @@ and the script will generate a graph for you at the end. This will shell out to
 an R process to generate the graph, so you will need to ensure that you have R
 installed on your system with the `ggplot2` and `reshape` packages installed.
 
+Personally, I use a Mac and I attempted to install R through Homebrew but had
+troubles with compiling packages. I had far more success when I installed R
+straight from the R website, http://cran.r-project.org/bin/macosx/, and used
+their GUI R.app to install the packages.
+
+None of this is required to run the `dynamo-autoscale` executable in production.
+
 ### Simulating data coming in
 
 There's a script called `script/simulator` that allows you to step through data
@@ -307,3 +316,5 @@ instead of running all the way through the data and generating a report,
 `script/simulate` will pause after each round of new data and drop you into a
 REPL. This is very handy for debugging tricky situations with your rules or the
 codebase.
+
+The simulator does not hit CloudWatch or DynamoDB at any point.
