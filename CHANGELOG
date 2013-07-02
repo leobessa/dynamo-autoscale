@@ -1,3 +1,9 @@
+v0.1.2
+
+- Fixed a require error that caused the program to bomb out in certain
+	circumstances.
+- Added some extra logging around rules being triggered.
+
 v0.1.1
 
 - Added peace-of-mind logging when the program starts so you can actually tell
