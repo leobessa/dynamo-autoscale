@@ -40,7 +40,17 @@ possible.
 # Configuration
 
 This library requires AWS keys that have access to both CloudWatch and DynamoDB,
-for retriving data and sending scaling requests.
+for retriving data and sending scaling requests. Using IAM, create a new user, and
+assign the 'CloudWatch Read Only Access' policy template. In addition, you will
+need to use the Policy Generator to add at least the following Amazon DynamoDB actions:
+
+  - "dynamodb:DescribeTable"
+  - "dynamodb:ListTables"
+  - "dynamodb:UpdateTable"
+
+The ARN for the custom policy can be specified as '\*' to allow access to all tables,
+or alternatively you can refer to the IAM documentation to limit access to specific
+tables only.
 
 The project will look for a YAML file in the following locations on start up:
 
@@ -177,7 +187,7 @@ writes for: 2.hours, greater_than: 200 do |table, rule, actioner|
 end
 ```
 
-This rule will set the provisioned write throughout to 300 if the consumed
+This rule will set the provisioned write throughput to 300 if the consumed
 writes are greater than 200 for 2 hours. The actioner handles a tonne of things
 under the hood, such as making sure you don't scale up more than you're allowed
 to in a single call and making sure you don't try to change a table when it's in
@@ -318,3 +328,21 @@ REPL. This is very handy for debugging tricky situations with your rules or the
 codebase.
 
 The simulator does not hit CloudWatch or DynamoDB at any point.
+
+## Contributing
+
+Report Issues/Feature requests on [GitHub Issues](https://github.com/invisiblehand/dynamo-autoscale/issues).
+
+#### Note on Patches/Pull Requests
+
+ * Fork the project.
+ * Make your feature addition or bug fix.
+ * Add tests for it. This is important so we don't break it in a
+   future version unintentionally.
+ * Commit, do not modify the rakefile, version, or history.
+   (if you want to have your own version, that is fine but bump version in a commit by itself so it can be ignored when we pull)
+ * Send a pull request. Bonus points for topic branches.
+
+### Copyright
+
+Copyright (c) 2013 InvisibleHand Software Ltd. See [LICENSE](https://github.com/invisiblehand/dynamo-autoscale/blob/master/LICENSE) for details.
