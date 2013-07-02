@@ -1,5 +1,7 @@
 module DynamoAutoscale
   class Rule
+    include DynamoAutoscale::Logger
+
     attr_accessor :metric, :opts
 
     CONDITIONS = {
