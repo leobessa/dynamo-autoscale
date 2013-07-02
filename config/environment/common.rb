@@ -9,6 +9,7 @@ require 'colored'
 
 require_relative '../../lib/dynamo-autoscale/logger'
 require_relative '../../lib/dynamo-autoscale/poller'
+require_relative '../../lib/dynamo-autoscale/actioner'
 
 module DynamoAutoscale
   include DynamoAutoscale::Logger
