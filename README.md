@@ -40,7 +40,17 @@ possible.
 # Configuration
 
 This library requires AWS keys that have access to both CloudWatch and DynamoDB,
-for retriving data and sending scaling requests.
+for retriving data and sending scaling requests. Using IAM, create a new user, and
+assign the 'CloudWatch Read Only Access' policy template. In addition, you will
+need to use the Policy Generator to add at least the following Amazon DynamoDB actions:
+
+  - "dynamodb:DescribeTable"
+  - "dynamodb:ListTables"
+  - "dynamodb:UpdateTable"
+
+The ARN for the custom policy can be specified as '*' to allow access to all tables,
+or alternatively you can refer to the IAM documentation to limit access to specific
+tables only.
 
 The project will look for a YAML file in the following locations on start up:
 
