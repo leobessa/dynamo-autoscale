@@ -11,24 +11,32 @@ describe DynamoAutoscale::Actioner do
   describe "scaling down" do
     before do
       table.tick(5.minutes.ago, {
-        provisioned_writes: 100, consumed_writes: 50,
-        provisioned_reads:  100, consumed_reads:  20,
+        provisioned_writes: 15000, consumed_writes: 50,
+        provisioned_reads:  15000, consumed_reads:  20,
       })
     end
 
     it "should not be allowed more than 4 times per day" do
       actioner.set(:writes, 90).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 80).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 70).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 60).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 60).should be_false
     end
 
     it "is not per metric, it is per table" do
       actioner.set(:reads,  90).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 80).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:reads,  70).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 60).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 60).should be_false
     end
 
@@ -36,6 +44,12 @@ describe DynamoAutoscale::Actioner do
       actioner.set(:reads, DynamoAutoscale::Actioner.minimum_throughput - 1)
       time, val = actioner.provisioned_reads.last
       val.should == DynamoAutoscale::Actioner.minimum_throughput
+    end
+
+    it "should not be allowed to go above the maximum throughput" do
+      actioner.set(:reads, DynamoAutoscale::Actioner.maximum_throughput + 1)
+      time, val = actioner.provisioned_reads.last
+      val.should == DynamoAutoscale::Actioner.maximum_throughput
     end
   end
 
@@ -48,14 +62,17 @@ describe DynamoAutoscale::Actioner do
     end
 
     it "once per day at midnight" do
+      Timecop.travel(1.day.from_now.utc.midnight - 6.hours)
+
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 90)
-      Timecop.travel(10.seconds.from_now)
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 80)
-      Timecop.travel(10.seconds.from_now)
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 70)
-      Timecop.travel(10.seconds.from_now)
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 60)
-      Timecop.travel(10.seconds.from_now)
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 50)
 
       actioner.provisioned_writes.length.should == 4
@@ -67,13 +84,13 @@ describe DynamoAutoscale::Actioner do
       Timecop.travel(1.day.from_now.utc.midnight)
 
       actioner.set(:writes, 50)
-      Timecop.travel(10.seconds.from_now)
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 40)
-      Timecop.travel(10.seconds.from_now)
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 30)
-      Timecop.travel(10.seconds.from_now)
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 20)
-      Timecop.travel(10.seconds.from_now)
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 10)
 
       actioner.provisioned_writes.length.should == 8
@@ -85,9 +102,13 @@ describe DynamoAutoscale::Actioner do
 
     specify "and not a second sooner" do
       actioner.set(:writes, 90).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 80).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 70).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 60).should be_true
+      Timecop.travel(10.minutes.from_now)
       actioner.set(:writes, 60).should be_false
       actioner.downscales.should == 4
       actioner.upscales.should == 0
@@ -116,9 +137,23 @@ describe DynamoAutoscale::Actioner do
     end
 
     it "can happen as much as it fucking wants to" do
-      100.times do
-        actioner.set(:writes, 100000).should be_true
-      end
+      Timecop.travel(10.minutes.from_now)
+      actioner.set(:writes, 200).should be_true
+      Timecop.travel(10.minutes.from_now)
+      actioner.set(:writes, 300).should be_true
+      Timecop.travel(10.minutes.from_now)
+      actioner.set(:writes, 400).should be_true
+      Timecop.travel(10.minutes.from_now)
+      actioner.set(:writes, 500).should be_true
+      Timecop.travel(10.minutes.from_now)
+      actioner.set(:writes, 600).should be_true
+      Timecop.travel(10.minutes.from_now)
+      actioner.set(:writes, 700).should be_true
+      Timecop.travel(10.minutes.from_now)
+      actioner.set(:writes, 800).should be_true
+      Timecop.travel(10.minutes.from_now)
+      actioner.set(:writes, 900).should be_true
+      Timecop.travel(10.minutes.from_now)
     end
   end
 

@@ -5,6 +5,7 @@ require 'tempfile'
 require 'aws-sdk'
 require 'active_support/all'
 require 'rbtree'
+require 'colored'
 
 require_relative '../../lib/dynamo-autoscale/logger'
 require_relative '../../lib/dynamo-autoscale/poller'

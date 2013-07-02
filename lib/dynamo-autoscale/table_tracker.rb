@@ -272,7 +272,7 @@ module DynamoAutoscale
 
     def graph! opts = {}
       data_tmp = File.join(Dir.tmpdir, 'data.csv')
-      png_tmp  = opts[:path] or File.join(Dir.tmpdir, 'graph.png')
+      png_tmp  = opts[:path] || File.join(Dir.tmpdir, 'graph.png')
       r_script = File.join(DynamoAutoscale.root, 'rlib', 'dynamodb_graph.r')
 
       to_csv!(path: data_tmp)

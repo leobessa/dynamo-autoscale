@@ -11,7 +11,7 @@ module DynamoAutoscale
       if datum[:provisioned_reads] and (datum[:consumed_reads] > datum[:provisioned_reads])
         lost_reads = datum[:consumed_reads] - datum[:provisioned_reads]
 
-        logger.warn "[reads ] Lost units: #{lost_reads} " +
+        logger.warn "[reads] Lost units: #{lost_reads} " +
           "(#{datum[:consumed_reads]} - #{datum[:provisioned_reads]})"
       end
 

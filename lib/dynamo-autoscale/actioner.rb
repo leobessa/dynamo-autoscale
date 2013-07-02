@@ -10,6 +10,14 @@ module DynamoAutoscale
       @minimum_throughput = new_minimum_throughput
     end
 
+    def self.maximum_throughput
+      @maximum_throughput ||= 20000
+    end
+
+    def self.maximum_throughput= new_maximum_throughput
+      @maximum_throughput = new_maximum_throughput
+    end
+
     attr_accessor :table, :upscales, :downscales
 
     def initialize table, opts = {}
@@ -68,13 +76,16 @@ module DynamoAutoscale
     def set metric, to
       check_day_reset!
 
-      from   = table.last_provisioned_for(metric)
       metric = normalize_metric(metric)
+      ptime, _ = provisioned_for(metric).last
 
-      if from and from == to
-        logger.debug "Attempted to scale to same value. Ignoring..."
+      if ptime and ptime > 2.minutes.ago
+        logger.warn "[actioner] Attempted to scale the same metric more than " +
+          "once in a 2 minute window. Disallowing."
         return false
       end
+
+      from = table.last_provisioned_for(metric)
 
       if from and to > (from * 2)
         to = from * 2
@@ -83,11 +94,23 @@ module DynamoAutoscale
           "more than allowed. Capped scale to #{to}."
       end
 
-      if from and to < Actioner.minimum_throughput
+      if to < Actioner.minimum_throughput
         to = Actioner.minimum_throughput
 
         logger.warn "[#{metric}] Attempted to scale down to " +
           "less than minimum throughput. Capped scale to #{to}."
+      end
+
+      if to > Actioner.maximum_throughput
+        to = Actioner.maximum_throughput
+
+        logger.warn "[#{metric}] Attempted to scale up to " +
+          "greater than maximum throughput. Capped scale to #{to}."
+      end
+
+      if from and from == to
+        logger.info "[#{metric}] Attempted to scale to same value. Ignoring..."
+        return false
       end
 
       if from and from > to
@@ -162,12 +185,12 @@ module DynamoAutoscale
       result = nil
 
       if @pending[:writes] and @pending[:reads]
-        wtime, wvalue = @pending[:writes]
-        rtime, rvalue = @pending[:reads]
+        _, wvalue = @pending[:writes]
+        _, rvalue = @pending[:reads]
 
         if result = scale_both(rvalue, wvalue)
-          @provisioned[:writes][wtime] = wvalue
-          @provisioned[:reads][rtime] = rvalue
+          @provisioned[:writes][Time.now.utc] = wvalue
+          @provisioned[:reads][Time.now.utc] = rvalue
 
           @pending[:writes] = nil
           @pending[:reads] = nil
@@ -176,7 +199,7 @@ module DynamoAutoscale
         time, value = @pending[:writes]
 
         if result = scale(:writes, value)
-          @provisioned[:writes][time] = value
+          @provisioned[:writes][Time.now.utc] = value
 
           @pending[:writes] = nil
         end
@@ -184,7 +207,7 @@ module DynamoAutoscale
         time, value = @pending[:reads]
 
         if result = scale(:reads, value)
-          @provisioned[:reads][time] = value
+          @provisioned[:reads][Time.now.utc] = value
           @pending[:reads] = nil
         end
       end

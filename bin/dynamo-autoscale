@@ -2,6 +2,7 @@
 
 require 'pp'
 require 'optparse'
+require 'active_support/all'
 
 # Force this script into production mode as it's the only thing that will
 # actually hit DynamoDB in the entire project.
@@ -46,6 +47,13 @@ OptionParser.new do |opts|
     general_opts[:minimum_throughput] = value
   end
 
+  doc = "Sets a maximum value for throughputs to be set to. " +
+    "Defaults to 20,000."
+
+  opts.on('--maximum-throughput VALUE', Float, doc) do |value|
+    general_opts[:maximum_throughput] = value
+  end
+
   opts.on( '-h', '--help', 'Display this screen' ) do
     puts opts
     exit
@@ -84,14 +92,24 @@ if tables.empty?
   exit 1
 end
 
+poller_opts = { tables: tables }
+
+if general_opts[:dry_run]
+  poller_opts[:filters] = LocalActioner.faux_provisioning_filters
+end
+
 DynamoAutoscale.rules          = RuleSet.new(ruleset)
 DynamoAutoscale.dispatcher     = Dispatcher.new
-DynamoAutoscale.poller         = CWPoller.new(tables: tables)
+DynamoAutoscale.poller         = CWPoller.new(poller_opts)
 DynamoAutoscale.actioner_class = general_opts[:dry_run] ? LocalActioner : DynamoActioner
 DynamoAutoscale.actioner_opts  = actioner_opts
 
 if general_opts[:minimum_throughput]
   Actioner.minimum_throughput = general_opts[:minimum_throughput]
+end
+
+if general_opts[:maximum_throughput]
+  Actioner.maximum_throughput = general_opts[:maximum_throughput]
 end
 
 Signal.trap("USR1") do

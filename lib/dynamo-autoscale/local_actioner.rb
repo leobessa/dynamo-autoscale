@@ -14,11 +14,25 @@ module DynamoAutoscale
     # makes it look like we're actually modifying the provisioned numbers.
     def self.faux_provisioning_filters
       [Proc.new do |table, time, datum|
-        wtime, writes = DynamoAutoscale.actioners[table].provisioned_writes.last
-        rtime, reads  = DynamoAutoscale.actioners[table].provisioned_reads.last
+        actioner = DynamoAutoscale.actioners[table]
 
-        datum[:provisioned_writes] = writes if writes and time > wtime
-        datum[:provisioned_reads]  = reads  if reads  and time > rtime
+        actioner.provisioned_reads.reverse_each do |rtime, reads|
+          logger.debug "Checking if #{time} > #{rtime}"
+          if time > rtime
+            logger.debug "[filter] Faked provisioned_reads to be #{reads} at #{time}"
+            datum[:provisioned_reads] = reads
+            break
+          end
+        end
+
+        actioner.provisioned_writes.reverse_each do |wtime, writes|
+          logger.debug "Checking if #{time} > #{wtime}"
+          if time > wtime
+            logger.debug "[filter] Faked provisioned_writes to be #{writes} at #{time}"
+            datum[:provisioned_writes] = writes
+            break
+          end
+        end
       end]
     end
   end

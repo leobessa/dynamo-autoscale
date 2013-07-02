@@ -1,6 +1,6 @@
 # DynamoDB Autoscaling
 
-*IMPORTANT*: It's highly recommended that you read this README before
+**IMPORTANT**: It's highly recommended that you read this README before
 continuing. This project, if used incorrectly, has a lot of potential to cost
 you huge amounts of money. Proceeding with caution is paramount, as we cannot be
 held responsible for misuse that leads to excessive cost on your part.
@@ -60,7 +60,7 @@ The project will look for a YAML file in the following locations on start up:
 If it doesn't find an AWS YAML config in any of those locations, the process
 prints an error and exits.
 
-*A sample config can be found in the project root directory.*
+**A sample config can be found in the project root directory.**
 
 # Usage
 
@@ -75,6 +75,19 @@ internal documentation on the executable, you can run:
 
 This should tell you what flags you can set and what arguments the command
 expects.
+
+## Logging
+
+By default, not a whole lot will be logged at first. If you want to be sure that
+the gem is working and doing things, you can run with the `DEBUG` environment
+variable set to `true`:
+
+    $ DEBUG=true dynamo-autoscale <args...>
+
+Also, if you want pretty coloured logging, you can set the `PRETTY_LOG`
+environment variable to `true`:
+
+    $ PRETTY_LOG=true DEBUG=true dynamo-autoscale <args...>
 
 ## Rulesets
 
@@ -239,6 +252,42 @@ consumption. You may need to tweak the `--flush-after` value to match your own
 situation. By default, there is no `--flush-after` and downscales will wait
 indefinitely, this may not be desirable.
 
+## Signaling
+
+The `dynamo-autoscale` process responds to the SIGUSR1 and SIGUSR2 signals. What
+we've done may be a dramatic bastardisation of what signals are intended for or
+how they work, but here's what each does.
+
+### USR1
+
+If you send SIGUSR1 to the process as it's running, the process will dump all of
+the data it has collected on all of the tables it is collecting for into CSV
+files in the directory it was run in.
+
+Example:
+
+    $ dynamo-autoscale some/ruleset.rb some_table
+    # Runs as PID 1234. Wait for some time to pass...
+    $ kill -USR1 1234
+    $ cat some_table.csv
+
+The CSV is in the following format:
+
+    time,provisioned_reads,provisioned_writes,consumed_reads,consumed_writes
+    2013-07-02T10:48:00Z,800.0,600.0,390.93666666666667,30.54
+    2013-07-02T10:49:00Z,800.0,600.0,390.93666666666667,30.54
+    2013-07-02T10:53:00Z,800.0,600.0,386.4533333333333,95.26666666666667
+    2013-07-02T10:54:00Z,800.0,600.0,386.4533333333333,95.26666666666667
+    2013-07-02T10:58:00Z,800.0,600.0,110.275,25.406666666666666
+    2013-07-02T10:59:00Z,800.0,600.0,246.12,54.92
+
+### USR2
+
+If you send SIGUSR2 to the process as it's running, the process will take all of
+the data it has on all of its tables and generate a graph for each table using R
+(see the Graphs section below). This is handy for visualising what the process
+is doing, especially after doing a few hours of a `--dry-run`.
+
 # Developers / Tooling
 
 Everything below this part of the README is intended for people that want to
@@ -331,7 +380,8 @@ The simulator does not hit CloudWatch or DynamoDB at any point.
 
 ## Contributing
 
-Report Issues/Feature requests on [GitHub Issues](https://github.com/invisiblehand/dynamo-autoscale/issues).
+Report Issues/Feature requests on
+[GitHub Issues](https://github.com/invisiblehand/dynamo-autoscale/issues).
 
 #### Note on Patches/Pull Requests
 
@@ -345,4 +395,6 @@ Report Issues/Feature requests on [GitHub Issues](https://github.com/invisibleha
 
 ### Copyright
 
-Copyright (c) 2013 InvisibleHand Software Ltd. See [LICENSE](https://github.com/invisiblehand/dynamo-autoscale/blob/master/LICENSE) for details.
+Copyright (c) 2013 InvisibleHand Software Ltd. See
+[LICENSE](https://github.com/invisiblehand/dynamo-autoscale/blob/master/LICENSE)
+for details.
