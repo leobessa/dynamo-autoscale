@@ -1,0 +1,11 @@
+# A minimal config file for use in the testing suite.
+
+:logger:
+  :level: INFO
+  :sync:  true
+  :style: pretty
+
+:tables:
+  - "just keeping the config loader happy"
+
+:dry_run: true # fakes the provisioning data

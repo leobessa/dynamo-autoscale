@@ -1,5 +1,7 @@
 module DynamoAutoscale
   class LocalDataPoll < Poller
+    include DynamoAutoscale::Logger
+
     def initialize *args
       super(*args)
       @cache = Hash.new { |h, k| h[k] = {} }

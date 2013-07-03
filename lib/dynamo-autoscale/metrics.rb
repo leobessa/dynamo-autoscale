@@ -1,6 +1,6 @@
 module DynamoAutoscale
   class Metrics
-    extend DynamoAutoscale::Logger
+    include DynamoAutoscale::Logger
 
     DEFAULT_OPTS = {
       namespace:   'AWS/DynamoDB',

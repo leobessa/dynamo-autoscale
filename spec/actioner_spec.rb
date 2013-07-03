@@ -16,6 +16,12 @@ describe DynamoAutoscale::Actioner do
       })
     end
 
+    it "should add a scale event to its table" do
+      Timecop.travel(10.minutes.from_now)
+      actioner.set(:writes, 90).should be_true
+      table.scale_events.should_not be_empty
+    end
+
     it "should not be allowed more than 4 times per day" do
       actioner.set(:writes, 90).should be_true
       Timecop.travel(10.minutes.from_now)

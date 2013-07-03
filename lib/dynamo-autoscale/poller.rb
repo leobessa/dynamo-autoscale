@@ -1,5 +1,8 @@
 module DynamoAutoscale
   class Poller
+    include DynamoAutoscale::Logger
+    attr_accessor :tables, :filters
+
     # The poller constructor accepts a hash of options. The following arguments
     # are valid but optional:
     #
@@ -9,11 +12,12 @@ module DynamoAutoscale
     #   each datum before it gets sent to the dispatcher. It helps fake setting
     #   provisioned throughput.
     def initialize opts = {}
-      @opts = opts
+      @tables  = opts[:tables] || []
+      @filters = opts[:filters] || []
     end
 
     def run &block
-      poll(@opts[:tables]) do |table_name, data|
+      poll(tables) do |table_name, data|
         logger.debug "[poller] Got data: #{data}"
         table = DynamoAutoscale.tables[table_name]
 
@@ -29,9 +33,7 @@ module DynamoAutoscale
             consumed_reads:     data[:consumed_reads][time],
           }
 
-          if @opts[:filters]
-            @opts[:filters].each { |filter| filter.call(table, time, datum) }
-          end
+          filters.each { |filter| filter.call(table, time, datum) }
 
           DynamoAutoscale.dispatcher.dispatch(table, time, datum, &block)
         end

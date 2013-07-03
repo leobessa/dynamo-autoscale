@@ -1,15 +1,24 @@
 #!/usr/bin/env ruby
 
-require_relative '../config/environment/common'
-require 'pp'
-require 'fileutils'
+# This script will fetch the 6 days of previous data from all of the tables that
+# you have specified in the config passed in as ARGV[0].
+#
+# It will store this data into the `data/` directory of this project in a format
+# that the rest of the tool scripts understands.
 
+require_relative '../config/environment/common'
 include DynamoAutoscale
 
-tables = ARGV
+if ARGV[0]
+  DynamoAutoscale.setup_from_config(ARGV[0])
+elsif ARGV[0].nil?
+  STDERR.puts "Usage: script/historic_data path/to/config.yml"
 
-if tables.empty?
-  STDERR.puts "Usage: script/historic_data table_name [another_table_name ...]"
+  exit 1
+elsif ARGV[0] and !File.exists?(ARGV[0])
+  STDERR.puts "Usage: script/historic_data path/to/config.yml"
+  STDERR.puts "Error: The path you specified is to a file that does not exist."
+
   exit 1
 end
 
@@ -18,7 +27,7 @@ range  = (Date.today - 5.days).upto(Date.today)
 logger.info "Date range: #{range.to_a}"
 
 # Filter out tables that do not exist in Dynamo.
-tables.select! do |table|
+DynamoAutoscale.poller.tables.select! do |table|
   if dynamo.tables[table].exists?
     true
   else
@@ -33,7 +42,7 @@ range.each do |start_day|
 
   FileUtils.mkdir(dir) unless Dir.exists?(dir)
 
-  tables.each do |table|
+  DynamoAutoscale.poller_opts[:tables].each do |table|
     logger.info "Collecting data for #{table} on #{start_day}..."
     File.open(File.join(dir, "#{table}.json"), 'w') do |file|
       file.write(JSON.pretty_generate(Metrics.all_metrics(table, {

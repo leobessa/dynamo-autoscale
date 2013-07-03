@@ -1,34 +1,42 @@
 #!/usr/bin/env ruby
 
+# This script will locally test the tables and options you have specified in
+# your config passed in as ARGV[0].
+#
+# You will first need to have obtained historic data on the tables in your
+# config file. To do this, run:
+#
+#   $ script/historic_data path/to/config.yml
+#
+# This script does not change any throughputs on DynamoDB whatsoever. The
+# historic script data will hit CloudWatch fairly hard to get its data, though.
+
 require_relative '../config/environment/common'
-require 'pp'
-require 'timecop'
-include DynamoAutoscale
-extend  DynamoAutoscale
 
-graph   = !!(ARGV.delete("--graph") or ARGV.delete("-g"))
-ruleset = ARGV.shift
-tables  = ARGV
+OptionParser.new do |opts|
+  opts.on("--graph") do
+    GRAPH = true
+  end
+end.parse!
 
-if tables.empty? or ruleset.nil?
-  STDERR.puts "Usage: script/test ruleset table_name [another_table_name ... ] [-g|--graph]"
+if ARGV[0]
+  DynamoAutoscale.setup_from_config(ARGV[0], dry_run: true)
+elsif ARGV[0].nil?
+  STDERR.puts "Usage: script/test path/to/config.yml"
+
+  exit 1
+elsif ARGV[0] and !File.exists?(ARGV[0])
+  STDERR.puts "Usage: script/test path/to/config.yml"
+  STDERR.puts "Error: The path you specified is to a file that does not exist."
+
   exit 1
 end
-
-filters                        = LocalActioner.faux_provisioning_filters
-DynamoAutoscale.rules          = RuleSet.new(ruleset)
-DynamoAutoscale.dispatcher     = Dispatcher.new
-DynamoAutoscale.poller         = LocalDataPoll.new(tables: tables, filters: filters)
-DynamoAutoscale.actioner_class = LocalActioner
-DynamoAutoscale.actioner_opts  = { group_downscales: true, flush_after: 2.hours }
 
 # Uncomment this and the below RubyProf lines if you want profiling information.
 # RubyProf.start
 
 begin
-  DynamoAutoscale.poller.run do |table_name, time|
-    Timecop.travel(time)
-  end
+  DynamoAutoscale.poller.run { |table_name, time| Timecop.travel(time) }
 rescue Interrupt
   Ripl.start binding: binding
 end
@@ -40,12 +48,10 @@ end
 # Uncomment this if you want to drop into a REPL at the end of the test.
 # Ripl.start binding: binding
 
-tables.each do |table_name|
-  table = DynamoAutoscale.tables[table_name]
-
+DynamoAutoscale.tables.each do |_, table|
   table.report!
 
-  if graph
+  if GRAPH
     path = table.graph! open: true
     puts "Graph saved to #{path}"
   end

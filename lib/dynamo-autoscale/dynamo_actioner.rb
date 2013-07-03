@@ -1,5 +1,7 @@
 module DynamoAutoscale
   class DynamoActioner < Actioner
+    include DynamoAutoscale::Logger
+
     def dynamo
       @dynamo ||= AWS::DynamoDB.new.tables[table.name]
     end
@@ -19,14 +21,13 @@ module DynamoAutoscale
       dynamo_scale(read_capacity_units: reads, write_capacity_units: writes)
     end
 
+    def can_run?
+      dynamo.status == :active
+    end
+
     private
 
     def dynamo_scale opts
-      if dynamo.status == :updating
-        logger.warn "[actioner] Cannot scale throughputs. Table is updating."
-        return false
-      end
-
       dynamo.provision_throughput(opts)
       return true
     rescue AWS::DynamoDB::Errors::ValidationException => e

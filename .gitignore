@@ -1,4 +1,4 @@
-config/aws.yml
+config/dynamo-autoscale.yml
 aws.yml
 data/
 pkg/

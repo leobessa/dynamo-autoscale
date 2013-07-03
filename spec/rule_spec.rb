@@ -252,6 +252,12 @@ describe DynamoAutoscale::Rule do
 
         subject { rule.test(table) }
         it      { should be_true }
+
+        describe "table" do
+          subject               { table }
+          before                { rule.test(table) }
+          its(:triggered_rules) { should_not be_empty }
+        end
       end
 
       describe "should not match" do

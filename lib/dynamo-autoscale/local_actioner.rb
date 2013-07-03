@@ -1,12 +1,26 @@
 module DynamoAutoscale
   class LocalActioner < Actioner
-    # Dummy scaling method.
+    include DynamoAutoscale::Logger
+
     def scale metric, value
+      @updating_until = rand(4.0..7.0).minutes.from_now.utc
       return true
     end
 
     def scale_both reads, writes
+      @updating_until = rand(4.0..7.0).minutes.from_now.utc
       return true
+    end
+
+    def can_run?
+      return true if @updating_until.nil?
+
+      if Time.now.utc > @updating_until
+        @updating_until = nil
+        return true
+      end
+
+      return false
     end
 
     # These filters use the arrays inside the local actioner to fake the
@@ -17,7 +31,6 @@ module DynamoAutoscale
         actioner = DynamoAutoscale.actioners[table]
 
         actioner.provisioned_reads.reverse_each do |rtime, reads|
-          logger.debug "Checking if #{time} > #{rtime}"
           if time > rtime
             logger.debug "[filter] Faked provisioned_reads to be #{reads} at #{time}"
             datum[:provisioned_reads] = reads

@@ -1,6 +1,7 @@
 module DynamoAutoscale
   class Actioner
     include DynamoAutoscale::Logger
+    attr_accessor :table, :upscales, :downscales
 
     def self.minimum_throughput
       @minimum_throughput ||= 10
@@ -17,8 +18,6 @@ module DynamoAutoscale
     def self.maximum_throughput= new_maximum_throughput
       @maximum_throughput = new_maximum_throughput
     end
-
-    attr_accessor :table, :upscales, :downscales
 
     def initialize table, opts = {}
       @table            = table
@@ -61,6 +60,13 @@ module DynamoAutoscale
       end
 
       @last_scale_check = now
+    end
+
+    # This should be overwritten by deriving classes. In the Dynamo actioner,
+    # this should check that the table is in an :active state. In the local
+    # actioner this will be faked.
+    def can_run?
+      false
     end
 
     def upscales
@@ -146,9 +152,8 @@ module DynamoAutoscale
       end
 
       if @pending[metric]
-        previous_pending = @pending[metric].last
         logger.info "[#{metric}][scaling down] " +
-          "#{previous_pending} -> #{to.round(2)} (overwritten pending)"
+          "#{@pending[metric]} -> #{to.round(2)} (overwritten pending)"
       else
         logger.info "[#{metric}][scaling down] " +
           "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
@@ -158,8 +163,7 @@ module DynamoAutoscale
     end
 
     def queue_operation! metric, value
-      @pending[metric] = [Time.now.utc, value]
-
+      @pending[metric] = value
       try_flush!
     end
 
@@ -179,31 +183,38 @@ module DynamoAutoscale
 
     def flush_operations!
       result = nil
+      now = Time.now.utc
 
       if @pending[:writes] and @pending[:reads]
-        _, wvalue = @pending[:writes]
-        _, rvalue = @pending[:reads]
+        wvalue = @pending[:writes]
+        rvalue = @pending[:reads]
 
         if result = scale_both(rvalue, wvalue)
-          @provisioned[:writes][Time.now.utc] = wvalue
-          @provisioned[:reads][Time.now.utc] = rvalue
+          @provisioned[:writes][now] = wvalue
+          @provisioned[:reads][now] = rvalue
+
+          table.scale_events[now] = {
+            writes: wvalue,
+            reads: rvalue,
+          }
 
           @pending[:writes] = nil
           @pending[:reads] = nil
         end
       elsif @pending[:writes]
-        time, value = @pending[:writes]
+        value = @pending[:writes]
 
         if result = scale(:writes, value)
           @provisioned[:writes][Time.now.utc] = value
-
+          table.scale_events[now] = { writes: value }
           @pending[:writes] = nil
         end
       elsif @pending[:reads]
-        time, value = @pending[:reads]
+        value = @pending[:reads]
 
         if result = scale(:reads, value)
           @provisioned[:reads][Time.now.utc] = value
+          table.scale_events[now] = { reads: value }
           @pending[:reads] = nil
         end
       end

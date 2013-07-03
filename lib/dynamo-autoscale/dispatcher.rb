@@ -1,5 +1,7 @@
 module DynamoAutoscale
   class Dispatcher
+    include DynamoAutoscale::Logger
+
     def initialize
       @last_check = {}
     end
@@ -26,8 +28,14 @@ module DynamoAutoscale
       block.call(table, time, datum) if block
 
       if @last_check[table.name].nil? or @last_check[table.name] < time
-        DynamoAutoscale.rules.test(table)
-        @last_check[table.name] = time
+        if DynamoAutoscale.actioners[table].can_run?
+          logger.debug "[dispatcher] Checking rules..."
+          DynamoAutoscale.rules.test(table)
+          @last_check[table.name] = time
+        else
+          logger.debug "[dispatcher] Skipped rule check, table is not ready " +
+            "to have its throughputs modified."
+        end
       else
         logger.debug "[dispatcher] Skipped rule check, already checked for " +
           "a later data point."

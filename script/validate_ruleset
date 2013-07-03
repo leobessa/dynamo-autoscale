@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 
 require_relative '../config/environment/common'
-include DynamoAutoscale
-extend  DynamoAutoscale
 
 ruleset = ARGV.shift
 
@@ -12,7 +10,7 @@ if ruleset.nil?
 end
 
 begin
-  RuleSet.new(ruleset)
+  DynamoAutoscale::RuleSet.new(ruleset)
   puts "Rules seem legit."
 rescue ArgumentError => e
   puts "Ruleset has problem: #{e.message}"

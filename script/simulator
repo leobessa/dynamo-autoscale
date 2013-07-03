@@ -5,27 +5,29 @@
 # through the data chronologically, dropping you into a REPL with each new
 # timeslice.
 #
-# Useful for checking that code works without having to make calls to the
-# CloudWatch API.
+# You will first need to have obtained historic data on the tables in your
+# config file. To do this, run:
+#
+#   $ script/historic_data path/to/config.yml
+#
+# This script does not change any throughputs on DynamoDB whatsoever. The
+# historic script data will hit CloudWatch fairly hard to get its data, though.
 
 require_relative '../config/environment/common'
-require 'timecop'
-require 'pp'
 include DynamoAutoscale
 
-ruleset = ARGV.shift
-tables  = ARGV
+if ARGV[0]
+  DynamoAutoscale.setup_from_config(ARGV[0], dry_run: true)
+elsif ARGV[0].nil?
+  STDERR.puts "Usage: script/simulator path/to/config.yml"
 
-if ruleset.nil? or tables.empty?
-  STDERR.puts "Usage: script/simulator ruleset table_name [another_table_name ... ]"
+  exit 1
+elsif ARGV[0] and !File.exists?(ARGV[0])
+  STDERR.puts "Usage: script/simulator path/to/config.yml"
+  STDERR.puts "Error: The path you specified is to a file that does not exist."
+
   exit 1
 end
-
-filters                        = LocalActioner.faux_provisioning_filters
-DynamoAutoscale.rules          = RuleSet.new(ruleset)
-DynamoAutoscale.dispatcher     = Dispatcher.new
-DynamoAutoscale.poller         = LocalDataPoll.new(tables: tables, filters: filters)
-DynamoAutoscale.actioner_class = LocalActioner
 
 DynamoAutoscale.poller.run do |table, time, datum|
   Timecop.travel(time)

@@ -1,5 +1,7 @@
 module DynamoAutoscale
   class RuleSet
+    include DynamoAutoscale::Logger
+
     attr_accessor :rules
 
     def initialize path = nil, &block
@@ -23,10 +25,12 @@ module DynamoAutoscale
       rules  = self.for(table.name)
 
       rules.select(&:reads?).each do |rule|
+        # logger.debug "[rule_set] Checking rule: #{rule.to_english}"
         break result = true if rule.test(table)
       end
 
       rules.select(&:writes?).each do |rule|
+        # logger.debug "[rule_set] Checking rule: #{rule.to_english}"
         break result = true if rule.test(table)
       end
 

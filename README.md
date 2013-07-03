@@ -37,7 +37,26 @@ This project aims to take all of this into consideration and automatically scale
 your throughputs to enable you to deal with spikes and save money where
 possible.
 
-# Configuration
+# Usage
+
+First of all, you'll need to install this project as a gem:
+
+    $ gem install dynamo-autoscale
+
+This will give you access to the `dynamo-autoscale` executable. The executable
+takes a single argument, the path to a config file.
+
+## Configuration
+
+The configuration file is the central thing that `dynamo-autoscale` requires to
+function. It specifies what tables to monitor, maximum and minimum throughputs
+and where your ruleset is located.
+
+The `dynamo-autoscale` executable takes a single argument, and that is the path
+to the configuration file you want to use.
+
+**A sample config can be found in the project root directory.** It documents all
+of the options you can specify.
 
 This library requires AWS keys that have access to both CloudWatch and DynamoDB,
 for retriving data and sending scaling requests. Using IAM, create a new user, and
@@ -52,29 +71,29 @@ The ARN for the custom policy can be specified as '\*' to allow access to all ta
 or alternatively you can refer to the IAM documentation to limit access to specific
 tables only.
 
-The project will look for a YAML file in the following locations on start up:
+### Minimal "getting started" configuration
 
-  - ./aws.yml
-  - ENV['AWS_CONFIG']
+``` yaml
+:aws:
+  :access_key_id:      "your_id"
+  :secret_access_key:  "your_key"
+  :dynamo_db_endpoint: "dynamodb.us-east-1.amazonaws.com"
 
-If it doesn't find an AWS YAML config in any of those locations, the process
-prints an error and exits.
+# There are some example rulesets in the rulesets/ directory of this project.
+:ruleset: "path_to_your_ruleset.rb"
 
-**A sample config can be found in the project root directory.**
+:tables:
+  - "your_table_name"
 
-# Usage
+# Run your rulesets as a dry run first, to make sure that they actually do what
+# you expect.
+:dry_run: true
+```
 
-First of all, you'll need to install this project as a gem:
+Save this somewhere on your filesystem and point the `dynamo-autoscale`
+executable to it:
 
-    $ gem install dynamo-autoscale
-
-This will give you access to the `dynamo-autoscale` executable. For some
-internal documentation on the executable, you can run:
-
-    $ dynamo-autoscale -h
-
-This should tell you what flags you can set and what arguments the command
-expects.
+    $ dynamo-autoscale path/to/config.yml
 
 ## Logging
 

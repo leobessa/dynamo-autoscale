@@ -1,5 +1,6 @@
 module DynamoAutoscale
   class CWPoller < Poller
+    include DynamoAutoscale::Logger
     INTERVAL = 1.minute
 
     def poll tables, &block

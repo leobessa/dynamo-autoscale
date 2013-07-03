@@ -5,7 +5,7 @@ module DynamoAutoscale
     # TODO: This time window may need changing.
     TIME_WINDOW = 7.days
 
-    attr_reader :name, :data
+    attr_reader :name, :data, :triggered_rules, :scale_events
 
     def initialize name
       @name = name
@@ -13,7 +13,9 @@ module DynamoAutoscale
     end
 
     def clear_data
-      @data = RBTree.new
+      @data            = RBTree.new
+      @triggered_rules = RBTree.new
+      @scale_events    = RBTree.new
     end
 
     # `tick` takes two arguments. The first is a Time object, the second is
@@ -48,13 +50,9 @@ module DynamoAutoscale
       end
 
       @data[time] = datum
-
-      # The code below here just makes sure that we're trimming data points that
-      # are outside of the time window.
-      logger.debug "[table] Pruning data that may be outside of time window..."
-      now = Time.now.utc
-      to_delete = @data.each.take_while { |key, _| key < (now - TIME_WINDOW) }
-      to_delete.each { |key, _| @data.delete(key) }
+      remove_expired_data! @data
+      remove_expired_data! @triggered_rules
+      remove_expired_data! @scale_events
     end
 
     # Gets the last amount of provisioned throughput for whatever metric you
@@ -314,16 +312,18 @@ module DynamoAutoscale
       puts "  Lost w/units: #{lost_write_units.round(2)} (#{lost_write_percent.round(2)}%)"
       puts "      Upscales: #{DynamoAutoscale.actioners[self].upscales}"
       puts "    Downscales: #{DynamoAutoscale.actioners[self].downscales}"
-      puts "       Fitness: #{fitness}"
     end
 
-    def fitness
-      lost_weight   = 100
-      wasted_weight = 1
-      lost          = ((lost_read_percent + lost_write_percent) / 2)
-      wasted        = ((wasted_read_percent + wasted_write_percent) / 2)
+    private
 
-      ((lost * lost_weight) + (wasted * wasted_weight)) / (lost_weight + wasted_weight)
+    # Helper function to remove data from an RBTree object keyed on a Time
+    # object where the key is outside of the time window defined by the
+    # TIME_WINDOW constant.
+    def remove_expired_data! data
+      # logger.debug "[table] Pruning data that may be outside of time window..."
+      now = Time.now.utc
+      to_delete = data.each.take_while { |key, _| key < (now - TIME_WINDOW) }
+      to_delete.each { |key, _| data.delete(key) }
     end
   end
 end

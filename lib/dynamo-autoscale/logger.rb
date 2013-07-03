@@ -11,5 +11,9 @@ module DynamoAutoscale
     def logger
       DynamoAutoscale::Logger.logger
     end
+
+    def self.included base
+      base.extend DynamoAutoscale::Logger
+    end
   end
 end

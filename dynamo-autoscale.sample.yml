@@ -1,0 +1,69 @@
+:aws:
+  # REQUIRED
+  #
+  # Here is where you specify your AWS ID and key. It needs to be a pair that
+  # can access both CloudWatch and DynamoDB. For exact details on IAM policies,
+  # check the project README.
+  :access_key_id:      "your_id"
+  :secret_access_key:  "your_key"
+
+  # REQUIRED
+  #
+  # At the moment, only the us-east-1 region is supported. Changing this may
+  # have strange behvaviour. Don't do it.
+  :dynamo_db_endpoint: "dynamodb.us-east-1.amazonaws.com"
+
+:logger:
+  # Pretty logging makes the log output colourful. Who doesn't like colours?
+  :style: pretty
+  :level: INFO
+
+:email:
+  :send_scale_reports: true
+  :mail_auth_type: login
+  :mail_server: "mail.getinvisiblehand.com"
+  :mail_user: "alerting"
+  :mail_pass: "a3bK9vXW"
+  :recipients:
+    - "sam.rose@forward.co.uk"
+
+# REQUIRED
+#
+# Specify the path to your ruleset. Further information on the syntax and
+# purpose of rulesets can be found in the README.
+:ruleset: "rulesets/gradual_tail.rb"
+
+# REQUIRED
+#
+# The following is an array of tables to monitor and autoscale. You need to
+# specify at least one.
+:tables:
+  - "products-api-production4_dodgy_product_weights"
+
+# If you don't want to scale dynamo just yet, you can say that you want to run
+# in "dry run" mode, which will monitor your production databases but all of the
+# scaling events will only be tracked locally.
+#
+# Very useful for making sure your rules will do the right thing.
+:dry_run: true
+
+# Because you are very limited by how many downscales you have per day, and
+# because downscaling both reads and writes at the same time only counts as a
+# single downscale, the following option will queue up downscales until it can
+# apply 1 for reads and 1 for writes at the same time. It is recommended that
+# you turn this one.
+:group_downscales: true
+
+# This option only works in conjunction with the above group_downscales option.
+# If a downscale stays queued for a long time, you can specify a timeout and
+# just apply a single read or write downscale after a specified amount of time
+# passes.
+#
+# Specified in seconds.
+:flush_after: 3600
+
+# The following two options are configurable minimums and maximums for
+# provisioned throughputs. Dynamo-autoscale will not go below or above whatever
+# you set here.
+:minimum_throughput: 10
+:maximum_throughput: 20000
