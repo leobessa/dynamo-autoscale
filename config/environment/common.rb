@@ -76,8 +76,10 @@ module DynamoAutoscale
       DynamoAutoscale::Actioner.maximum_throughput = config[:maximum_throughput]
     end
 
-    logger.debug "[setup] Minimum throughput set to: #{config[:minimum_throughput]}"
-    logger.debug "[setup] Maximum throughput set to: #{config[:maximum_throughput]}"
+    logger.debug "[setup] Minimum throughput set to: " +
+      "#{DynamoAutoscale::Actioner.minimum_throughput}"
+    logger.debug "[setup] Maximum throughput set to: " +
+      "#{DynamoAutoscale::Actioner.maximum_throughput}"
 
     logger.debug "[setup] Ruleset loading from: #{config[:ruleset]}"
     DynamoAutoscale.ruleset_location = config[:ruleset]
