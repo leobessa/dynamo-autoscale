@@ -1,3 +1,9 @@
+v0.2
+
+- Completely reworked configuration. Got rid of the massive number of flags and
+	options required to launch dynamo-autoscale and moved them into a config file.
+- Added the ability to send and email whenever a scale happens.
+
 v0.1.4
 
 - Fixed a bug that stopped all rule evaluation after the first rule passed. Now
