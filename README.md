@@ -85,8 +85,9 @@ tables only.
 :tables:
   - "your_table_name"
 
-# Run your rulesets as a dry run first, to make sure that they actually do what
-# you expect.
+# In dry-run mode, the program will do exactly what it would normally except it
+# won't touch DynamoDB at all. It will just log the changes it would have made
+# in production locally.
 :dry_run: true
 ```
 
@@ -103,15 +104,7 @@ variable set to `true`:
 
     $ DEBUG=true dynamo-autoscale <args...>
 
-Also, if you want pretty coloured logging, you can set the `PRETTY_LOG`
-environment variable to `true`:
-
-    $ PRETTY_LOG=true DEBUG=true dynamo-autoscale <args...>
-
 ## Rulesets
-
-One of the first things you'll notice upon looking into the `--help` on the
-executable is that it's looking for a "rule set". What on earth is a rule set?
 
 A rule set is the primary user input for dynamo-autoscale. It is a DSL for
 specifying when to increase and decrease your provisioned throughputs. Here is a
@@ -255,10 +248,13 @@ your four downscales for the current day. Or, you can downscale reads and writes
 at the same time and this also costs you one of your four. (Reference:
 http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html)
 
-Because of this, the actioner can handle the grouping up of downscales. Let's
-say you passed in the following options in at the command line:
+Because of this, the actioner can handle the grouping up of downscales by adding
+the following to your config:
 
-    $ dynamo-autoscale some/ruleset.rb some_table --group-downscales --flush-after 300
+``` yaml
+:group_downscales: true
+:flush_after: 300
+```
 
 What this is saying is that if a write downscale came in, the actioner wouldn't
 fire it off immediately. It would wait 300 seconds, or 5 minutes, to see if a
@@ -267,11 +263,11 @@ time. If no corresponding read came in, after 5 minutes the pending write
 downscale would get "flushed" and applied without a read downscale.
 
 This technique helps to save downscales on tables that may have unpredictable
-consumption. You may need to tweak the `--flush-after` value to match your own
-situation. By default, there is no `--flush-after` and downscales will wait
-indefinitely, this may not be desirable.
+consumption. You may need to tweak the `flush_after` value to match your own
+situation. By default, there is no `flush_after` and downscales will wait
+indefinitely, but this may not be desirable.
 
-## Signaling
+## Signalling
 
 The `dynamo-autoscale` process responds to the SIGUSR1 and SIGUSR2 signals. What
 we've done may be a dramatic bastardisation of what signals are intended for or
@@ -285,7 +281,7 @@ files in the directory it was run in.
 
 Example:
 
-    $ dynamo-autoscale some/ruleset.rb some_table
+    $ dynamo-autoscale path/to/config.yml
     # Runs as PID 1234. Wait for some time to pass...
     $ kill -USR1 1234
     $ cat some_table.csv
@@ -305,7 +301,34 @@ The CSV is in the following format:
 If you send SIGUSR2 to the process as it's running, the process will take all of
 the data it has on all of its tables and generate a graph for each table using R
 (see the Graphs section below). This is handy for visualising what the process
-is doing, especially after doing a few hours of a `--dry-run`.
+is doing, especially after doing a few hours of a `dry_run`.
+
+## Scale Report Emails
+
+If you would like to receive email notifications whenever a scale event happens,
+you can specify some email options in your configuration. Specifying the email
+options implicitly activates email reports. Not including your email config
+implicitly turns it off.
+
+Sample email config:
+
+``` yaml
+:email:
+  :to: "john.doe@example.com"
+  :from: "dynamo-autoscale@example.com"
+  :via: :smtp
+  :via_options:
+    :port: 25
+    :enable_starttls_auto: false
+    :authentication: :plain
+    :address: "mailserver.example.com"
+    :user_name: "user"
+    :password: "password"
+```
+
+We're using Pony internally to send email and this part of the config just gets
+passed to Pony verbatim. Check out the [Pony](https://github.com/benprew/pony)
+documentation for more details on the options it supports.
 
 # Developers / Tooling
 
@@ -352,25 +375,21 @@ with the `script/historic_data` executable.
 If you want to test rules on your local machine without having to query
 CloudWatch or hit DynamoDB, there are tools that facilitate that nicely.
 
-The first thing you would need to do is gather some historic data. There's a
-script called `script/historic_data` that you can run to gather data on a
-specific table and store it into the `data/` directory in a format that all of
-the other scripts are familiar with.
-
-Next there are a couple of things you can do.
-
 ### Running a test
 
 You can run a big batch of data all in one go with the `script/test` script.
 This script can be invoked like this:
 
-    $ script/test rulesets/default.rb table_name
+    $ script/test path/to/config.yml
 
-Substituting `table_name` with the name of a table that exists in your DynamoDB.
-This will run through all of the data for that table in time order, logging
-along the way and triggering rules from the rule set if any were defined.
+You will need to make sure you have historic data available for whatever tables
+you have listed in your config file. If you don't, it's easy to gather it:
 
-At the end, it shows you a report on the amount of wasted, used and lost units.
+    $ script/historic_data path/to/config.yml
+
+This script goes off to CloudWatch and pulls down about a week of data for each
+table you have listed in your config. Then you can continue to re-run the
+`script/test` command and watch a tonne of log output fly by.
 
 #### Graphs
 

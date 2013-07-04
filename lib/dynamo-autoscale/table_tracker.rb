@@ -279,11 +279,18 @@ module DynamoAutoscale
 
       if $? != 0
         logger.error "[table] Failed to create graph."
+        return false
       else
-        `open #{png_tmp}` if opts[:open]
+        if opts[:open]
+          `open #{png_tmp}`
+          if $? != 0
+            logger.error "[table] Failed to open graph."
+            return false
+          else
+            return png_tmp
+          end
+        end
       end
-
-      png_tmp
     end
 
     def scatterplot_for! metric

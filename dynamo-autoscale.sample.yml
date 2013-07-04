@@ -18,14 +18,24 @@
   :style: pretty
   :level: INFO
 
+# If you want to receive email reports whenever a scale operation happens, you
+# can specify this email config. If you don't want to receive emails, just
+# remove this from your config file.
+#
+# dynamo-autoscale uses Pony to send email, this hash is just given to Pony
+# verbatim. Further documentation on what options Pony accepts can be found on
+# their GitHub: https://github.com/benprew/pony
 :email:
-  :send_scale_reports: true
-  :mail_auth_type: login
-  :mail_server: "mail.getinvisiblehand.com"
-  :mail_user: "alerting"
-  :mail_pass: "a3bK9vXW"
-  :recipients:
-    - "sam.rose@forward.co.uk"
+  :to: "john.doe@example.com"
+  :from: "dynamo-autoscale@example.com"
+  :via: :smtp
+  :via_options:
+    :port: 25
+    :enable_starttls_auto: false
+    :authentication: :plain
+    :address: "mailserver.example.com"
+    :user_name: "user"
+    :password: "password"
 
 # REQUIRED
 #

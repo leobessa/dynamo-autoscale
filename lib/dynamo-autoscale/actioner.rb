@@ -135,6 +135,7 @@ module DynamoAutoscale
       if result = scale(metric, to)
         @provisioned[metric][Time.now.utc] = to
         @upscales += 1
+        ScaleReport.new(table).send
       end
 
       return result
@@ -172,6 +173,8 @@ module DynamoAutoscale
         if flush_operations!
           @downscales += 1
           @last_action = Time.now.utc
+          ScaleReport.new(table).send
+
           return true
         else
           return false

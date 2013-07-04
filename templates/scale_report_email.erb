@@ -1,0 +1,17 @@
+Last 5 triggered rules:
+
+<% @table.triggered_rules.reverse_each.take(5).each do |time, rule| %>
+  <%= time.iso8601 %>: <%= rule.to_english %>
+<% end %>
+
+Last 20 data points:
+
+<% @table.data.reverse_each.take(20).each do |time, datum| %>
+  <% time.iso8601 %>: <%= datum %>
+<% end %>
+
+Last 5 scale events:
+
+<% @table.scale_events.reverse_each.take(5) do |time, scale_event| %>
+  <%= time.iso8601 %>: <%= scale_event %>
+<% end %>

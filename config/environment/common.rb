@@ -10,6 +10,8 @@ require 'active_support/all'
 require 'rbtree'
 require 'colored'
 require 'pp'
+require 'erb'
+require 'pony'
 
 require_relative '../../lib/dynamo-autoscale/logger'
 require_relative '../../lib/dynamo-autoscale/poller'
