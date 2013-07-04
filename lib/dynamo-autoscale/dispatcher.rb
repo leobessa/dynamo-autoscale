@@ -10,6 +10,11 @@ module DynamoAutoscale
       DynamoAutoscale.current_table = table
       logger.debug "#{time}: Dispatching to #{table.name} with data: #{datum}"
 
+      # If a nil value comes through, we can reasoanbly assume that it should
+      # have been 0.
+      datum[:consumed_writes] = 0 if datum[:consumed_writes].nil?
+      datum[:consumed_reads]  = 0 if datum[:consumed_reads].nil?
+
       if datum[:provisioned_reads] and (datum[:consumed_reads] > datum[:provisioned_reads])
         lost_reads = datum[:consumed_reads] - datum[:provisioned_reads]
 

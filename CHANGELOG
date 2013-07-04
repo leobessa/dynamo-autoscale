@@ -1,3 +1,8 @@
+v0.2.6
+
+- Fixed a bug where we crash out when CloudWatch returns nil for a consumed
+	field.
+
 v0.2.5
 
 - Fixed another bug that prevented scaling up.
