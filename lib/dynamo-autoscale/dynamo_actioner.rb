@@ -14,7 +14,7 @@ module DynamoAutoscale
         :write_capacity_units
       end
 
-      dynamo_scale(table, aws_throughput_key => metric)
+      dynamo_scale(aws_throughput_key => metric)
     end
 
     def scale_both reads, writes

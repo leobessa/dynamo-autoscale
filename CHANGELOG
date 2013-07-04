@@ -1,3 +1,7 @@
+v0.2.4
+
+- Fixed bug that prevented scaling up.
+
 v0.2.3
 
 - Improved logging.
