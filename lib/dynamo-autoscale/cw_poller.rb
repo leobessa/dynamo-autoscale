@@ -1,7 +1,7 @@
 module DynamoAutoscale
   class CWPoller < Poller
     include DynamoAutoscale::Logger
-    INTERVAL = 1.minute
+    INTERVAL = 5.minutes
 
     def poll tables, &block
       if tables.nil?
