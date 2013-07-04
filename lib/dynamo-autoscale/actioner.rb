@@ -203,26 +203,37 @@ module DynamoAutoscale
 
           @pending[:writes] = nil
           @pending[:reads] = nil
+
+          logger.info "[flush] Flushed a read and a write event."
+        else
+          logger.error "[flush] Failed to flush a read and write event."
         end
       elsif @pending[:writes]
         value = @pending[:writes]
 
         if result = scale(:writes, value)
-          @provisioned[:writes][Time.now.utc] = value
+          @provisioned[:writes][now] = value
           table.scale_events[now] = { writes: value }
           @pending[:writes] = nil
+
+          logger.info "[flush] Flushed a write event."
+        else
+          logger.error "[flush] Failed to flush a write event."
         end
       elsif @pending[:reads]
         value = @pending[:reads]
 
         if result = scale(:reads, value)
-          @provisioned[:reads][Time.now.utc] = value
+          @provisioned[:reads][now] = value
           table.scale_events[now] = { reads: value }
           @pending[:reads] = nil
+
+          logger.info "[flush] Flushed a read event."
+        else
+          logger.error "[flush] Failed to flush a read event."
         end
       end
 
-      logger.info "[flush] All pending downscales have been flushed."
       return result
     end
 

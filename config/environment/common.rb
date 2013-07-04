@@ -179,7 +179,7 @@ module DynamoAutoscale
   end
 
   def self.current_table
-    @@current_table
+    @@current_table ||= nil
   end
 end
 

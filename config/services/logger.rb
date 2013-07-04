@@ -15,7 +15,7 @@ DynamoAutoscale::Logger.logger = ::Logger.new(STDOUT)
 if config[:style] == "pretty"
   DynamoAutoscale::Logger.logger.formatter = DynamoAutoscale::PrettyFormatter.new
 else
-  DynamoAutoscale::Logger.logger.formatter = Logger::Formatter.new
+  DynamoAutoscale::Logger.logger.formatter = DynamoAutoscale::StandardFormatter.new
 end
 
 if ENV['DEBUG']

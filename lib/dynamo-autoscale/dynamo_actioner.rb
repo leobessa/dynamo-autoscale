@@ -43,7 +43,7 @@ module DynamoAutoscale
       # When you try to increase throughput greater than 2x or you try to
       # decrease more than 4 times per day you get this.
 
-      aws_description = self.describe_table(table)
+      aws_description = self.class.describe_table(table)
       decreases_today = aws_description[:provisioned_throughput][:number_of_decreases_today]
 
       downscales(table, decreases_today)
