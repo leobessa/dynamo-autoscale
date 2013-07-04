@@ -12,6 +12,7 @@
 # historic script data will hit CloudWatch fairly hard to get its data, though.
 
 require_relative '../config/environment/common'
+require 'timecop'
 
 OptionParser.new do |opts|
   opts.on("--graph") do

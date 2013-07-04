@@ -1,7 +1,6 @@
 require 'logger'
 require 'optparse'
 require 'fileutils'
-require 'timecop'
 require 'time'
 require 'csv'
 require 'tempfile'

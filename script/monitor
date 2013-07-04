@@ -11,6 +11,7 @@
 # To exit the program entirely, drop into the REPL and run "exit!".
 
 require_relative '../config/environment/common'
+require 'timecop'
 include DynamoAutoscale
 
 if ARGV[0]
