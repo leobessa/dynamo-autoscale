@@ -225,15 +225,15 @@ The `table` argument is a `TableTracker` object. For a run down of what
 information is available to you I advise checking out the source code in
 `lib/dynamo-autoscale/table_tracker.rb`.
 
-### The :count option
+### The :times option
 
-The `:count` option allows you to specify that a rule must be triggered a set
+The `:times` option allows you to specify that a rule must be triggered a set
 number of times in a row before its action is executed.
 
 Example:
 
 ``` ruby
-writes for: 10.minutes, greater_than: "90%", count: 3, scale: { on: :consumed, by: 1.5 }
+writes for: 10.minutes, greater_than: "90%", times: 3, scale: { on: :consumed, by: 1.5 }
 ```
 
 This says that is writes are greater than 90% for 10 minutes three checks in a

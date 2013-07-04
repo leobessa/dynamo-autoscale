@@ -7,7 +7,7 @@ Last 5 triggered rules:
 Last 20 data points:
 
 <% @table.data.reverse_each.take(20).each do |time, datum| %>
-  <% time.iso8601 %>: <%= datum %>
+  <%= time.iso8601 %>: <%= datum %>
 <% end %>
 
 Last 5 scale events:

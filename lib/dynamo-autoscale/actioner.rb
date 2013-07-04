@@ -130,10 +130,13 @@ module DynamoAutoscale
       logger.info "[#{metric}][scaling up] " +
         "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
 
+      now = Time.now.utc
 
       # Because upscales are not limited, we don't need to queue this operation.
       if result = scale(metric, to)
-        @provisioned[metric][Time.now.utc] = to
+        table.scale_events[now] = { metric => to }
+
+        @provisioned[metric][now] = to
         @upscales += 1
         ScaleReport.new(table).send
       end

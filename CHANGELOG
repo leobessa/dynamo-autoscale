@@ -1,3 +1,7 @@
+v0.2.7
+
+- Some improvements around table tracking and scale reports.
+
 v0.2.6
 
 - Fixed a bug where we crash out when CloudWatch returns nil for a consumed
