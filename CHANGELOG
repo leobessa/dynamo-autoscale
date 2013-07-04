@@ -1,3 +1,7 @@
+v0.2.1
+
+- Fixed a require error.
+
 v0.2
 
 - Completely reworked configuration. Got rid of the massive number of flags and
