@@ -22,7 +22,7 @@ DynamoAutoscale.poller_opts[:tables].select! do |table_name|
   if dynamo.tables[table_name].exists?
     true
   else
-    logger.error "Table #{table_name} does not exist inside your DynamoDB."
+    DynamoAutoscale.logger.error "Table #{table_name} does not exist inside your DynamoDB."
     false
   end
 end
