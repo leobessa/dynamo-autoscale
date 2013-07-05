@@ -1,3 +1,11 @@
+v0.3
+
+- Added backdating on startup. When dynamo-autoscale starts up, it now fetches 6
+	hours of data for each table then starts polling.
+- Added a check before actioning that makes sure CloudWatch and DynamoDB agree
+	on what the current provisioned throughput is. Fixes a bug where downscales
+	were happening too frequently.
+
 v0.2.9
 
 - Fixed a problem where scale events weren't being showed in the scale report
