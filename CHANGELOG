@@ -1,3 +1,8 @@
+v0.2.9
+
+- Fixed a problem where scale events weren't being showed in the scale report
+	emails.
+
 v0.2.8
 
 - It seems that CloudWatch only has new data every 5 minutes. CloudWatch polling
