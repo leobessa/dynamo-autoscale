@@ -8,6 +8,8 @@ data$time = strptime(data$time, "%Y-%m-%dT%H:%M:%SZ")
 measure.vars = c('provisioned_reads','provisioned_writes',
                  'consumed_reads','consumed_writes')
 
+# measure.vars = c('consumed_reads','consumed_writes')
+
 ive.melted = melt(data, id.vars='time', measure.vars = measure.vars)
 
 g = ggplot(ive.melted, aes(x=time, y=value, color=variable)) + geom_line()

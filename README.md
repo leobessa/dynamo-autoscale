@@ -118,8 +118,9 @@ reads  for:  2.hours, less_than: "50%", min: 2, scale: { on: :consumed, by: 2 }
 writes for:  2.hours, less_than: "50%", min: 2, scale: { on: :consumed, by: 2 }
 ```
 
-You would put this ruleset in a file and then pass that file in as the first
-argument to `dynamo-autoscale` on the command line.
+You would put this ruleset in a file and then add the path to the ruleset to
+your `dynamo-autoscale` config. If you specify a relative path, the program will
+assume a path relative to its `Dir.pwd`.
 
 The first two rules are designed to deal with spikes. They are saying that if
 the consumed capacity units is greater than 90% of the provisioned throughput
@@ -240,6 +241,22 @@ This says that is writes are greater than 90% for 10 minutes three checks in a
 row, scale by the amount consumed multiplied by 1.5. A new check will only
 happen when the table receives new data from cloud watch, which means that the
 10 minute windows could potentially overlap.
+
+### Table-specific rules
+
+If you only want some rules to apply to certain tables, you can do the
+following:
+
+``` ruby
+table "my_table_name" do
+  reads for: 2.hours, less_than: 10, scale: { on: :consumed, by: 2 }
+end
+
+reads for: 2, less_than: "20%", scale: { on: :consumed, by: 2 }
+```
+
+Anything outside of a `table` block will apply to all tables you specify in your
+config.
 
 ## Downscale grouping
 

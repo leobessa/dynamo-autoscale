@@ -8,7 +8,9 @@ module DynamoAutoscale
       @table = table
       @erb = ERB.new(File.read(TEMPLATE))
 
-      if config = DynamoAutoscale.config[:email]
+      if DynamoAutoscale.config[:dry_run]
+        @enabled = false
+      elsif config = DynamoAutoscale.config[:email]
         @enabled = true
         Pony.options = config
       else

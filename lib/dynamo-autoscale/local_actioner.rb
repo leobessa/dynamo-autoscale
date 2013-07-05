@@ -39,7 +39,6 @@ module DynamoAutoscale
         end
 
         actioner.provisioned_writes.reverse_each do |wtime, writes|
-          logger.debug "Checking if #{time} > #{wtime}"
           if time > wtime
             logger.debug "[filter] Faked provisioned_writes to be #{writes} at #{time}"
             datum[:provisioned_writes] = writes
