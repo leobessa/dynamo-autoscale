@@ -134,7 +134,10 @@ module DynamoAutoscale
 
       # Because upscales are not limited, we don't need to queue this operation.
       if result = scale(metric, to)
-        table.scale_events[now] = { metric => to }
+        table.scale_events[now] = {
+          "#{metric}_to".to_sym => to,
+          "#{metric}_from".to_sym => from,
+        }
 
         @provisioned[metric][now] = to
         @upscales += 1
@@ -163,11 +166,11 @@ module DynamoAutoscale
           "#{from ? from.round(2) : "Unknown"} -> #{to.round(2)}"
       end
 
-      queue_operation! metric, to
+      queue_operation! metric, from, to
     end
 
-    def queue_operation! metric, value
-      @pending[metric] = value
+    def queue_operation! metric, from, to
+      @pending[metric] = [from, to]
       try_flush!
     end
 
@@ -192,16 +195,18 @@ module DynamoAutoscale
       now = Time.now.utc
 
       if @pending[:writes] and @pending[:reads]
-        wvalue = @pending[:writes]
-        rvalue = @pending[:reads]
+        wfrom, wto = @pending[:writes]
+        rfrom, rto = @pending[:reads]
 
-        if result = scale_both(rvalue, wvalue)
-          @provisioned[:writes][now] = wvalue
-          @provisioned[:reads][now] = rvalue
+        if result = scale_both(rto, wto)
+          @provisioned[:writes][now] = wto
+          @provisioned[:reads][now] = rto
 
           table.scale_events[now] = {
-            writes: wvalue,
-            reads: rvalue,
+            writes_from: wfrom,
+            writes_to:   wto,
+            reads_from:  rfrom,
+            reads_to:    rto,
           }
 
           @pending[:writes] = nil
@@ -212,24 +217,24 @@ module DynamoAutoscale
           logger.error "[flush] Failed to flush a read and write event."
         end
       elsif @pending[:writes]
-        value = @pending[:writes]
+        from, to = @pending[:writes]
 
-        if result = scale(:writes, value)
-          @provisioned[:writes][now] = value
-          table.scale_events[now] = { writes: value }
-          @pending[:writes] = nil
+        if result = scale(:writes, to)
+          @provisioned[:writes][now] = to
+          table.scale_events[now]    = { writes_from: from, writes_to: to }
+          @pending[:writes]          = nil
 
           logger.info "[flush] Flushed a write event."
         else
           logger.error "[flush] Failed to flush a write event."
         end
       elsif @pending[:reads]
-        value = @pending[:reads]
+        from, to = @pending[:reads]
 
-        if result = scale(:reads, value)
-          @provisioned[:reads][now] = value
-          table.scale_events[now] = { reads: value }
-          @pending[:reads] = nil
+        if result = scale(:reads, to)
+          @provisioned[:reads][now] = to
+          table.scale_events[now]   = { reads_from: from, reads_to: to }
+          @pending[:reads]          = nil
 
           logger.info "[flush] Flushed a read event."
         else
