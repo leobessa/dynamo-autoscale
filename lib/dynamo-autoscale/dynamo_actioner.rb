@@ -14,15 +14,55 @@ module DynamoAutoscale
         :write_capacity_units
       end
 
-      dynamo_scale(aws_throughput_key => value)
+      if throughput_synced?
+        dynamo_scale(aws_throughput_key => value)
+      else
+        # If the throughputs were not synced, the likelihood is we made the
+        # decision to scale based on false data. Clear it.
+        clear_pending!
+        false
+      end
     end
 
     def scale_both reads, writes
-      dynamo_scale(read_capacity_units: reads, write_capacity_units: writes)
+      if throughput_synced?
+        dynamo_scale(read_capacity_units: reads, write_capacity_units: writes)
+      else
+        # If the throughputs were not synced, the likelihood is we made the
+        # decision to scale based on false data. Clear it.
+        clear_pending!
+        false
+      end
     end
 
     def can_run?
       dynamo.status == :active
+    end
+
+    def throughput_synced?
+      time, datum = table.data.last
+
+      # If we've not gathered any data, we cannot know if our values are synced
+      # with Dynamo so we have to assume they are not until we get some data in.
+      return false if time.nil? or datum.nil?
+
+      if dynamo.read_capacity_units != datum[:provisioned_reads]
+        logger.error "[actioner] DynamoDB disagrees with CloudWatch on what " +
+          "the provisioned reads are. To be on the safe side, operations are " +
+          "not being applied."
+
+        return false
+      end
+
+      if dynamo.write_capacity_units != datum[:provisioned_writes]
+        logger.error "[actioner] DynamoDB disagrees with CloudWatch on what " +
+          "the provisioned writes are. To be on the safe side, operations are " +
+          "not being applied."
+
+        return false
+      end
+
+      return true
     end
 
     private

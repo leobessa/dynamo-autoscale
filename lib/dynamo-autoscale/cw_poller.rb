@@ -3,10 +3,21 @@ module DynamoAutoscale
     include DynamoAutoscale::Logger
     INTERVAL = 5.minutes
 
-    def poll tables, &block
-      if tables.nil?
-        tables = AWS::DynamoDB.new.tables.to_a.map(&:name)
+    def backdate
+      now = Time.now.utc
+
+      @tables.each do |table_name|
+        table = DynamoAutoscale.tables[table_name]
+        dispatch(table, Metrics.all_metrics(table_name, {
+          period:     5.minutes,
+          start_time: now - 6.hours,
+          end_time:   now,
+        }))
       end
+    end
+
+    def poll tables, &block
+      tables = AWS::DynamoDB.new.tables.to_a.map(&:name) if tables.nil?
 
       loop do
         # Sleep until the next interval occurrs. This calculation ensures that
@@ -24,7 +35,7 @@ module DynamoAutoscale
       logger.debug "[cw_poller] Beginning CloudWatch poll..."
       now = Time.now
 
-      tables.each do |table|
+      tables.each do |table_name|
         # This code will dispatch a message to the listening table that looks
         # like this:
         #
@@ -39,7 +50,7 @@ module DynamoAutoscale
         #
         # There may also be :provisioned_reads and :provisioned_writes
         # depending on how the CloudWatch API feels.
-        block.call(table, Metrics.all_metrics(table, {
+        block.call(table_name, Metrics.all_metrics(table_name, {
           period:     5.minutes,
           start_time: now - 20.minutes,
           end_time:   now,

@@ -245,13 +245,26 @@ module DynamoAutoscale
       return result
     end
 
+    def pending_reads?
+      !!@pending[:reads]
+    end
+
+    def pending_writes?
+      !!@pending[:writes]
+    end
+
+    def clear_pending!
+      @pending[:writes] = nil
+      @pending[:reads] = nil
+    end
+
     def should_flush?
       if @opts[:group_downscales].nil?
         logger.info "[flush] Downscales are not being grouped. Should flush."
         return true
       end
 
-      if @pending[:reads] and @pending[:writes]
+      if pending_reads? and pending_writes?
         logger.info "[flush] Both a read and a write are pending. Should flush."
         return true
       end

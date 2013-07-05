@@ -19,24 +19,27 @@ module DynamoAutoscale
     def run &block
       poll(tables) do |table_name, data|
         logger.debug "[poller] Got data: #{data}"
-        table = DynamoAutoscale.tables[table_name]
 
-        times = data.inject([]) do |memo, (_, timeseries)|
-          memo += timeseries.keys
-        end.sort!.uniq!
+        dispatch(DynamoAutoscale.tables[table_name], data, &block)
+      end
+    end
 
-        times.each do |time|
-          datum = {
-            provisioned_writes: data[:provisioned_writes][time],
-            provisioned_reads:  data[:provisioned_reads][time],
-            consumed_writes:    data[:consumed_writes][time],
-            consumed_reads:     data[:consumed_reads][time],
-          }
+    def dispatch table, data, &block
+      times = data.inject([]) do |memo, (_, timeseries)|
+        memo += timeseries.keys
+      end.sort!.uniq!
 
-          filters.each { |filter| filter.call(table, time, datum) }
+      times.each do |time|
+        datum = {
+          provisioned_writes: data[:provisioned_writes][time],
+          provisioned_reads:  data[:provisioned_reads][time],
+          consumed_writes:    data[:consumed_writes][time],
+          consumed_reads:     data[:consumed_reads][time],
+        }
 
-          DynamoAutoscale.dispatcher.dispatch(table, time, datum, &block)
-        end
+        filters.each { |filter| filter.call(table, time, datum) }
+
+        DynamoAutoscale.dispatcher.dispatch(table, time, datum, &block)
       end
     end
   end
