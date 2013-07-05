@@ -449,6 +449,13 @@ Report Issues/Feature requests on
  	 it can be ignored when we pull)
  * Send a pull request. Bonus points for topic branches.
 
+### About InvisibleHand
+
+InvisibleHand is a price comparison API and browser extension which provides real-time
+prices for millions of products at hundreds of retailers, and automatic price comparison.
+
+For more information about our API and technologies, please read our [DevBlog](http://devblog.getinvisiblehand.com/).
+
 ### Copyright
 
 Copyright (c) 2013 InvisibleHand Software Ltd. See
