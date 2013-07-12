@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    dynamo-autoscale (0.1.4)
+    dynamo-autoscale (0.3)
       activesupport
       aws-sdk
       colored
@@ -44,6 +44,7 @@ GEM
       coderay (~> 1.0.5)
       method_source (~> 0.8)
       slop (~> 3.4)
+    rake (10.0.4)
     rbtree (0.4.1)
     ripl (0.7.0)
       bond (~> 0.4.2)
@@ -72,6 +73,7 @@ PLATFORMS
 DEPENDENCIES
   dynamo-autoscale!
   pry
+  rake
   ripl
   rspec
   timecop
