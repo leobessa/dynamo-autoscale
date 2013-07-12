@@ -6,7 +6,7 @@ module DynamoAutoscale
 
     def initialize table
       @table = table
-      @erb = ERB.new(File.read(TEMPLATE))
+      @erb = ERB.new(File.read(TEMPLATE), nil, '-')
 
       if DynamoAutoscale.config[:dry_run]
         @enabled = false
@@ -44,6 +44,24 @@ module DynamoAutoscale
     rescue => e
       logger.error "[mailer] Encountered an error: #{e.class}:#{e.message}"
       false
+    end
+
+    def formatted_scale_event(scale_event)
+      max_length = max_metric_length(scale_event)
+      ['reads', 'writes'].map do |type|
+        type_from = scale_event["#{type}_from".to_sym].to_s.rjust(max_length)
+        type_to   = scale_event["#{type}_to".to_sym].to_s.rjust(max_length)
+
+        "#{type.capitalize.rjust(6)}: #{scale_direction(type_from, type_to)} from #{type_from} to #{type_to}"
+      end
+    end
+
+    def max_metric_length(scale_event)
+      scale_event.values.max.to_s.length
+    end
+
+    def scale_direction(from, to)
+      from > to ? 'DOWN' : ' UP '
     end
   end
 end

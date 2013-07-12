@@ -1,18 +1,33 @@
+Latest scale event for <%= @table.name %>:
+
+<% @table.scale_events.reverse_each.take(1).each do |time, scale_event| -%>
+  <%= time.iso8601 %>
+
+  <% formatted_scale_event(scale_event).each do |line| -%>
+    <%= line %>
+  <% end -%>
+<% end -%>
+
+
 Last 5 scale events:
 
-<% @table.scale_events.reverse_each.take(5).each do |time, scale_event| %>
-  <%= time.iso8601 %>: <%= scale_event %>
-<% end %>
+<% @table.scale_events.reverse_each.take(5).each do |time, scale_event| -%>
+  <%= time.iso8601 %>
 
+  <% formatted_scale_event(scale_event).each do |line| -%>
+    <%= line %>
+  <% end %>
+
+<% end -%>
 Last 5 triggered rules:
 
-<% @table.triggered_rules.reverse_each.take(5).each do |time, rule| %>
-  <%= time.iso8601 %>: <%= rule.to_english %>
-<% end %>
+<% @table.triggered_rules.reverse_each.take(5).each do |time, rule| -%>
+  <%= time.iso8601 %>
+  <%= rule.to_english %>
 
+<% end %>
 Last 20 data points:
-
 <% @table.data.reverse_each.take(20).each do |time, datum| %>
-  <%= time.iso8601 %>: <%= datum %>
+  <%= time.iso8601 %>
+  <%= datum %>
 <% end %>
-
