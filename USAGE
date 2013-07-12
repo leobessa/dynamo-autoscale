@@ -1,0 +1,14 @@
+Usage: dynamo-autoscale <path/to/config.yml>
+       dynamo-autoscale [-v|--version]
+       dynamo-autoscale [-h|--help]
+
+Available options are:
+
+    --version       prints out the version number of dynamo-autoscale
+    --help          prints out this documentation
+
+Details of what a configuration file should look to can be found at the
+following url: https://github.com/invisiblehand/dynamo-autoscale.
+
+For any queries, please email developers@getinvisiblehand.com.
+

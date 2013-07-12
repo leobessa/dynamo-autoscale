@@ -1,5 +1,4 @@
 require 'logger'
-require 'optparse'
 require 'fileutils'
 require 'time'
 require 'csv'

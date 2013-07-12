@@ -1,16 +1,43 @@
 #!/usr/bin/env ruby
 
+require 'optparse'
+
+# This OptionParser block is here to ensure the queries to --version are
+# actually fast and don't have to go through all of the Ruby requiring lark.
+begin
+  OptionParser.new do |opts|
+    opts.on('--version', 'Prints the version of this application.') do
+      require_relative '../lib/dynamo-autoscale/version'
+      puts DynamoAutoscale::VERSION
+      exit 0
+    end
+
+    opts.on('--help', 'Shows this documentation.') do
+      puts File.read(File.join(File.dirname(__FILE__), '..', 'USAGE'))
+      exit 0
+    end
+  end.parse!
+rescue OptionParser::InvalidOption => e
+  STDERR.puts e.message
+  STDERR.puts
+
+  STDERR.puts File.read(File.join(File.dirname(__FILE__), '..', 'USAGE'))
+  exit 1
+end
+
 require_relative '../config/environment/common'
+
 
 if ARGV[0]
   DynamoAutoscale.setup_from_config(ARGV[0])
 elsif ARGV[0].nil?
-  STDERR.puts "Usage: dynamo-autoscale path/to/config.yml"
+  STDERR.puts File.read(File.join(File.dirname(__FILE__), '..', 'USAGE'))
 
   exit 1
 elsif ARGV[0] and !File.exists?(ARGV[0])
-  STDERR.puts "Usage: dynamo-autoscale path/to/config.yml"
   STDERR.puts "Error: The path you specified is to a file that does not exist."
+  STDERR.puts
+  STDERR.puts File.read(File.join(File.dirname(__FILE__), '..', 'USAGE'))
 
   exit 1
 end
