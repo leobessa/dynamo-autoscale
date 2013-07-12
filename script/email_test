@@ -3,6 +3,15 @@
 require_relative '../config/environment/common'
 include DynamoAutoscale
 
+# This script is for testing the output of emails and configuration of email
+# servers to send mail from this gem.
+#
+# If you invoke this script with a config path, it will try and send the email
+# using your email configuration.
+#
+# If you invoke this script without a config path, it will just print the email
+# content to STDOUT.
+
 table = TableTracker.new("fake_table")
 
 rulepool = RuleSet.new do
