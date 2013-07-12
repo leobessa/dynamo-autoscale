@@ -1,3 +1,8 @@
+v0.3.2
+
+- Improved formatting in the scaling event emails, to try and make them
+	easier to read.
+
 v0.3.1
 
 - Mainly quality of life changes. We're playing nicely in the CLI now, with a
