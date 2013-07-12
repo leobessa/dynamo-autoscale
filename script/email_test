@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+
+require_relative '../config/environment/common'
+include DynamoAutoscale
+
+if ARGV[0]
+  DynamoAutoscale.setup_from_config(ARGV[0], dry_run: false)
+elsif ARGV[0].nil?
+  STDERR.puts "Usage: script/email_test path/to/config.yml"
+
+  exit 1
+elsif ARGV[0] and !File.exists?(ARGV[0])
+  STDERR.puts "Usage: script/email_test path/to/config.yml"
+  STDERR.puts "Error: The path you specified is to a file that does not exist."
+
+  exit 1
+end
+
+table    = TableTracker.new("fake_table")
+rulepool = DynamoAutoscale.rules.rules.values.flatten
+
+20.times do
+  table.tick(rand(1..100).minutes.ago, {
+    :provisioned_reads  => rand(1..1000),
+    :provisioned_writes => rand(1..1000),
+    :consumed_reads     => rand(1..1000),
+    :consumed_writes    => rand(1..1000),
+  })
+end
+
+10.times do
+  table.triggered_rules[rand(1..100).minutes.ago] = rulepool[rand(rulepool.length)]
+end
+
+10.times do
+  table.scale_events[rand(1..100).minutes.ago] = {
+    reads_from:  rand(1..1000),
+    reads_to:    rand(1..1000),
+    writes_from: rand(1..1000),
+    writes_to:   rand(1..1000),
+  }
+end
+
+ScaleReport.new(table).send
