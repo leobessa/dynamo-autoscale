@@ -1,4 +1,5 @@
 # DynamoDB Autoscaling
+[![Build Status](https://travis-ci.org/invisiblehand/dynamo-autoscale.png?branch=master)](https://travis-ci.org/invisiblehand/dynamo-autoscale)
 
 **IMPORTANT**: It's highly recommended that you read this README before
 continuing. This project, if used incorrectly, has a lot of potential to cost
