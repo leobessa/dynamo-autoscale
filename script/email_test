@@ -50,13 +50,13 @@ end
   }
 end
 
-report = ScaleReport.new(table)
 
 if ARGV[0]
   DynamoAutoscale.setup_from_config(ARGV[0], dry_run: false)
 
-  report.send
+  ScaleReport.new(table).send
 elsif ARGV[0].nil?
+  report = ScaleReport.new(table)
   puts "Subject: #{report.email_subject}"
   puts
   puts report.email_content
