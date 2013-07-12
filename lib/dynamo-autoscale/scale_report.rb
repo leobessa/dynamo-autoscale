@@ -18,6 +18,10 @@ module DynamoAutoscale
       end
     end
 
+    def email_subject
+      "Scale event for #{@table.name}"
+    end
+
     def email_content
       @erb.result(binding)
     end
@@ -26,7 +30,7 @@ module DynamoAutoscale
       return false unless @enabled
 
       result = Pony.mail({
-        subject: "Scale event for #{@table.name}",
+        subject: email_subject,
         body:    email_content,
       })
 

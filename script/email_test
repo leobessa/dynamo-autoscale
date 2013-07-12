@@ -3,21 +3,21 @@
 require_relative '../config/environment/common'
 include DynamoAutoscale
 
-if ARGV[0]
-  DynamoAutoscale.setup_from_config(ARGV[0], dry_run: false)
-elsif ARGV[0].nil?
-  STDERR.puts "Usage: script/email_test path/to/config.yml"
+table = TableTracker.new("fake_table")
 
-  exit 1
-elsif ARGV[0] and !File.exists?(ARGV[0])
-  STDERR.puts "Usage: script/email_test path/to/config.yml"
-  STDERR.puts "Error: The path you specified is to a file that does not exist."
+rulepool = RuleSet.new do
+  reads  last: 2, greater_than: "90%", scale: { on: :consumed, by: 1.7 }
+  reads  last: 2, greater_than: "80%", scale: { on: :consumed, by: 1.5 }
 
-  exit 1
-end
+  writes last: 2, greater_than: "90%", scale: { on: :consumed, by: 1.7 }
+  writes last: 2, greater_than: "80%", scale: { on: :consumed, by: 1.5 }
 
-table    = TableTracker.new("fake_table")
-rulepool = DynamoAutoscale.rules.rules.values.flatten
+  reads  for:  2.hours, less_than: "20%", min: 10, scale: { on: :consumed, by: 1.8 }
+  reads  for:  2.hours, less_than: "30%", min: 10, scale: { on: :consumed, by: 1.8 }
+
+  writes for:  2.hours, less_than: "20%", min: 10, scale: { on: :consumed, by: 1.8 }
+  writes for:  2.hours, less_than: "30%", min: 10, scale: { on: :consumed, by: 1.8 }
+end.rules.values.flatten
 
 20.times do
   table.tick(rand(1..100).minutes.ago, {
@@ -41,4 +41,19 @@ end
   }
 end
 
-ScaleReport.new(table).send
+report = ScaleReport.new(table)
+
+if ARGV[0]
+  DynamoAutoscale.setup_from_config(ARGV[0], dry_run: false)
+
+  report.send
+elsif ARGV[0].nil?
+  puts "Subject: #{report.email_subject}"
+  puts
+  puts report.email_content
+elsif ARGV[0] and !File.exists?(ARGV[0])
+  STDERR.puts "Usage: script/email_test [path/to/config.yml]"
+  STDERR.puts "Error: The path you specified is to a file that does not exist."
+
+  exit 1
+end
