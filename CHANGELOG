@@ -1,3 +1,8 @@
+v0.3.1
+
+- Mainly quality of life changes. We're playing nicely in the CLI now, with a
+	--help and --version flag (schoolboy stuff, my bad).
+
 v0.3
 
 - Added backdating on startup. When dynamo-autoscale starts up, it now fetches 6
