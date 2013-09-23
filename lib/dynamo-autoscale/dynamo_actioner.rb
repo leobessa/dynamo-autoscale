@@ -91,7 +91,7 @@ module DynamoAutoscale
       return false
     end
 
-    def self.describe_table
+    def self.describe_table table
       data = AWS::DynamoDB::ClientV2.new.describe_table(table_name: table.name)
 
       data[:table]
