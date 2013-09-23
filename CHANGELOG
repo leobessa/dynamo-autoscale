@@ -1,3 +1,7 @@
+v0.3.4
+
+- Fixed a bug in the scaling event emails where the scaling direction was being determined incorrectly.
+
 v0.3.3
 
 - Fixed a bug in the scaling event emails if only one metric was adjusted in the event, rather than both reads and writes being adjusted at the same time.

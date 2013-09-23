@@ -52,10 +52,11 @@ module DynamoAutoscale
       ['reads', 'writes'].map do |type|
         next unless scale_event.has_key? "#{type}_from".to_sym
 
+        direction = scale_direction( scale_event["#{type}_from".to_sym], scale_event["#{type}_to".to_sym] )
         type_from = scale_event["#{type}_from".to_sym].to_s.rjust(max_length)
         type_to   = scale_event["#{type}_to".to_sym].to_s.rjust(max_length)
 
-        "#{type.capitalize.rjust(6)}: #{scale_direction(type_from, type_to)} from #{type_from} to #{type_to}"
+        "#{type.capitalize.rjust(6)}: #{direction} from #{type_from} to #{type_to}"
       end.compact
     end
 
