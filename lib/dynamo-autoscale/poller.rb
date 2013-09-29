@@ -27,7 +27,7 @@ module DynamoAutoscale
     def dispatch table, data, &block
       times = data.inject([]) do |memo, (_, timeseries)|
         memo += timeseries.keys
-      end.sort!.uniq!
+      end.sort!.uniq
 
       times.each do |time|
         datum = {
