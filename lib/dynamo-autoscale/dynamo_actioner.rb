@@ -86,7 +86,7 @@ module DynamoAutoscale
       aws_description = self.class.describe_table(table)
       decreases_today = aws_description[:provisioned_throughput][:number_of_decreases_today]
 
-      downscales(table, decreases_today)
+      self.downscales = decreases_today
       logger.warn "[#{e.class}] #{e.message}"
       return false
     end
